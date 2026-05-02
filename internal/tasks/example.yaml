@@ -1,0 +1,39 @@
+# gocar.yaml
+version: "1"
+
+tasks:
+  # Low-level task: No dependencies
+  generate-proto:
+    inputs:
+      - "proto/**/*.proto"
+    outputs:
+      - "gen/go/api/*.go"
+    cmds:
+      - "protoc --go_out=gen/go ./proto/*.proto"
+
+  # Medium-level task: Depends on proto generation
+  build-server:
+    deps:
+      - generate-proto
+    inputs:
+      - "cmd/server/*.go"
+      - "internal/**/*.go"
+      - "go.mod"
+    outputs:
+      - "bin/server"
+    cmds:
+      - "go build -o bin/server ./cmd/server"
+
+  # High-level task: Depends on the build
+  test-all:
+    deps:
+      - build-server
+    inputs:
+      - "**/*_test.go"
+    cmds:
+      - "go test -v ./..."
+
+  # Utility task: No inputs, always runs unless explicitly cached by cmd string
+  lint:
+    cmds:
+      - "golangci-lint run"

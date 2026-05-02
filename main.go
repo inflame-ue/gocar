@@ -1,7 +1,17 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+
+	"github.com/inflam-ue/gocar/internal/tasks"
+)
 
 func main() {
-    fmt.Println("Hello, world!")
+	taskSpec, err := tasks.ParseTasks("internal/tasks/example.yaml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("%#v", taskSpec)
 }
