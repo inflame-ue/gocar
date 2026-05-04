@@ -17,20 +17,32 @@ type Task struct {
 	Commands []Command
 }
 
-func createCommand(cmdName string, args map[string][]string) (Command, error) {
+func createCommand(cmdName string, args map[string]any) (Command, error) {	
 	cmd := Command{
 		Name: cmdName,
 	}
+	
 	for arg, specs := range args {
+		strSpecs := make([]string, len(specs.([]any)))
+
+		for index, value := range specs.([]any) {
+			if str, ok := value.(string); ok {
+				strSpecs[index] = str
+			} else {
+				log.Printf("element %v is a valid spec", str)
+				continue
+			}
+		}
+		
 		switch arg {
 		case "cmds":
-			cmd.Cmds = specs
+			cmd.Cmds = strSpecs
 		case "inputs":
-			cmd.Inputs = specs
+			cmd.Inputs = strSpecs
 		case "outputs":
-			cmd.Outputs = specs
+			cmd.Outputs = strSpecs
 	    case "deps":
-			cmd.Deps = specs
+			cmd.Deps = strSpecs
 	    default:
 		    return Command{}, errors.New("err: argument not supported for command")
 		}
@@ -45,8 +57,13 @@ func ParseTask(commands map[any]any) (Task, error) {
 	}
 	
 	switch cmds := commands["tasks"].(type) {
-		case map[string]map[string][]string:
+		case map[string]any:
 			for cmdName, args := range cmds {
+				args, ok := args.(map[string]any)
+				if !ok {
+					log.Print("failed to establish the args type...skipping...")
+					continue
+				}
 				cmd, err := createCommand(cmdName, args)
 				if err != nil {
 					log.Printf("err: %v...skipping the command...", err)
