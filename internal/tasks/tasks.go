@@ -17,16 +17,16 @@ func readTasks(filepath string) ([]byte, error) {
 	return data, nil
 }
 
-func ParseTasks(filepath string) (map[interface{}]interface{}, error) {
+func ParseTasks(filepath string) (map[any]any, error) {
 	data, err := readTasks(filepath)
 	if err != nil {
-		return map[interface{}]interface{}{}, err
+		return map[any]any{}, err
 	}
 
 	// the structure of the file is dynamic
-	taskSpec := make(map[interface{}]interface{})
+	taskSpec := make(map[any]any)
 	if err := yaml.Unmarshal(data, &taskSpec); err != nil {
-		return map[interface{}]interface{}{}, fmt.Errorf("failed to unmarhsal: %v", err)
+		return map[any]any{}, fmt.Errorf("failed to unmarhsal: %v", err)
 	}
 
 	return taskSpec, nil
