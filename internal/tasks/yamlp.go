@@ -7,7 +7,7 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-func readTasks(filepath string) ([]byte, error) {
+func readYAML(filepath string) ([]byte, error) {
 	// the tasks file will never be large, hence read to memory
 	data, err := os.ReadFile(filepath)
 	if err != nil {
@@ -17,8 +17,8 @@ func readTasks(filepath string) ([]byte, error) {
 	return data, nil
 }
 
-func ParseTasks(filepath string) (map[any]any, error) {
-	data, err := readTasks(filepath)
+func ParseYAML(filepath string) (map[any]any, error) {
+	data, err := readYAML(filepath)
 	if err != nil {
 		return map[any]any{}, err
 	}
