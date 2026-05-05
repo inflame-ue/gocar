@@ -10,7 +10,7 @@ import (
 var printCmd = &cobra.Command{
 	Use:     "print",
 	Aliases: []string{"prettyprint", "pprint"},
-	Short:   "Print the Task struct created from the provided YAML file.",
+	Short:   "Print the task struct from YAML",
 	Long: `This is a command intended for debugging purposes throughout the development lifecycle.
 It prints the Task struct created from the YAML file and displays it for expection command-bycommand.
 	`,
