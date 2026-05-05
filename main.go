@@ -1,17 +1,7 @@
 package main
 
-import (
-	"fmt"
-	"log"
-
-	"github.com/inflam-ue/gocar/internal/tasks"
-)
+import "github.com/inflam-ue/gocar/internal/cmd"
 
 func main() {
-	taskSpec, err := tasks.ParseTasks("internal/tasks/example.yaml")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("%#v", taskSpec)
+	cmd.Execute()
 }
