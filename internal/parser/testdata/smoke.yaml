@@ -1,0 +1,24 @@
+tasks:
+  mkout:
+    cmd: mkdir out
+
+  alpha:
+    cmd: echo 'alpha\n' > out/a.txt
+    deps: [mkout]
+    outputs: [out/a.txt]
+
+  beta:
+    cmd: echo 'beta\n' > out/b.txt
+    deps: [mkout]
+    outputs: [out/b.txt]
+
+  merge:
+    cmd: cat out/a.txt out/b.txt > out/all.txt
+    deps: [alpha, beta]
+    inputs: [out/a.txt, out/b.txt]
+    outputs: [out/all.txt]
+
+  check:
+    cmd: wc -l out/all.txt
+    deps: [merge]
+    inputs: [out/all.txt]  
