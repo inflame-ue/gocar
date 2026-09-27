@@ -36,11 +36,14 @@ func parseRawTasks(data []byte) (rawTasks, error) {
 		if errors.Is(err, io.EOF) {
 			return nil, EmptyDocumentError
 		}
-		return nil, &ValidationError{
-			Task:  "",
-			Field: "",
-			Msg:   err.Error(),
+		return nil, &DocumentError{
+			Cause: err,
+			Msg: err.Error(),
 		}
+	}
+
+	if len(raw) == 0 {
+		return nil, EmptyDocumentError
 	}
 
 	return raw, nil
@@ -57,8 +60,10 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 			errs = append(errs, &ValidationError{
 				Task:  name,
 				Field: "",
+				Cause: err,
 				Msg:   "task specification cannot be loaded",
 			})
+			continue
 		}
 
 		if reflect.ValueOf(task).IsZero() {
@@ -67,6 +72,7 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 				Field: "",
 				Msg:   "task specification cannot be empty",
 			})
+			continue
 		}
 
 		if task.Cmd == "" {
@@ -75,10 +81,15 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 				Field: "cmd",
 				Msg:   "cmd specification cannot be empty",
 			})
+			continue
 		}
 
 		tasks[name] = task
 	}
 
-	return tasks, errors.Join(errs...)
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+
+	return tasks, nil
 }
