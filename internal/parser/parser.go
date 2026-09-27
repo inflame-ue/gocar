@@ -12,14 +12,26 @@ import (
 type Tasks map[string]task.Task
 type rawTasks map[string]yaml.Node
 
-var EmptyTaskError = errors.New("task specification is empty")
+var EmptyDocumentError = errors.New("task specification is empty")
 
-func ParseRawTasks(data []byte) (rawTasks, error) {
+func Parse(data []byte) (Tasks, error) {
+	if len(data) == 0 {
+		return nil, EmptyDocumentError
+	}
+
+	raw, err := parseRawTasks(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseTasks(raw)
+}
+
+func parseRawTasks(data []byte) (rawTasks, error) {
 	var raw map[string]yaml.Node
 
 	r := bytes.NewReader(data)
 	d := yaml.NewDecoder(r)
-	d.KnownFields(true)
 
 	if err := d.Decode(&raw); err != nil {
 		return nil, err
@@ -28,15 +40,11 @@ func ParseRawTasks(data []byte) (rawTasks, error) {
 	return raw, nil
 }
 
-func ParseTasks(raw rawTasks) (Tasks, error) {
-	var tasks Tasks
+func parseTasks(raw rawTasks) (Tasks, error) {
+	var tasks = make(Tasks)
 
 	for name, node := range raw {
 		var task task.Task
-
-		if node.IsZero() {
-			return nil, EmptyTaskError
-		}
 
 		if err := node.Decode(&task); err != nil {
 			return nil, fmt.Errorf("task %q: %w", name, err)
