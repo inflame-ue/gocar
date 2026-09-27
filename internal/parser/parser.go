@@ -2,8 +2,8 @@ package parser
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/inflame-ue/gocar/internal/task"
 	"go.yaml.in/yaml/v4"
@@ -12,13 +12,7 @@ import (
 type Tasks map[string]task.Task
 type rawTasks map[string]yaml.Node
 
-var EmptyDocumentError = errors.New("task specification is empty")
-
 func Parse(data []byte) (Tasks, error) {
-	if len(data) == 0 {
-		return nil, EmptyDocumentError
-	}
-
 	raw, err := parseRawTasks(data)
 	if err != nil {
 		return nil, err
@@ -37,6 +31,10 @@ func parseRawTasks(data []byte) (rawTasks, error) {
 		return nil, err
 	}
 
+	if len(raw) == 0 {
+		return nil, EmptyDocumentError
+	}
+
 	return raw, nil
 }
 
@@ -46,8 +44,24 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 	for name, node := range raw {
 		var task task.Task
 
-		if err := node.Decode(&task); err != nil {
+		if err := node.Load(&task, yaml.WithKnownFields(), yaml.WithUniqueKeys()); err != nil {
 			return nil, fmt.Errorf("task %q: %w", name, err)
+		}
+
+		if task.Cmd == "" {
+			return nil, &ValidationError{
+				Task:  name,
+				Field: "cmd",
+				Msg:   "cmd specification cannot be empty",
+			}
+		}
+
+		if reflect.ValueOf(task).IsZero() {
+			return nil, &ValidationError{
+				Task:  name,
+				Field: "",
+				Msg:   "task specification cannot be empty",
+			}
 		}
 
 		tasks[name] = task
