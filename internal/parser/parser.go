@@ -81,3 +81,4 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 	}
 
 	return tasks, errors.Join(errs...)
+}
