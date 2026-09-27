@@ -2,7 +2,8 @@ package parser
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
+	"io"
 	"reflect"
 
 	"github.com/inflame-ue/gocar/internal/task"
@@ -24,15 +25,22 @@ func Parse(data []byte) (Tasks, error) {
 func parseRawTasks(data []byte) (rawTasks, error) {
 	var raw map[string]yaml.Node
 
+	if len(data) == 0 {
+		return nil, EmptyDocumentError
+	}
+
 	r := bytes.NewReader(data)
 	d := yaml.NewDecoder(r)
 
 	if err := d.Decode(&raw); err != nil {
-		return nil, err
-	}
-
-	if len(raw) == 0 {
-		return nil, EmptyDocumentError
+		if errors.Is(err, io.EOF) {
+			return nil, EmptyDocumentError
+		}
+		return nil, &ValidationError{
+			Task:  "",
+			Field: "",
+			Msg:   err.Error(),
+		}
 	}
 
 	return raw, nil
@@ -40,32 +48,36 @@ func parseRawTasks(data []byte) (rawTasks, error) {
 
 func parseTasks(raw rawTasks) (Tasks, error) {
 	var tasks = make(Tasks)
+	var errs []error
 
 	for name, node := range raw {
 		var task task.Task
 
 		if err := node.Load(&task, yaml.WithKnownFields(), yaml.WithUniqueKeys()); err != nil {
-			return nil, fmt.Errorf("task %q: %w", name, err)
-		}
-
-		if task.Cmd == "" {
-			return nil, &ValidationError{
+			errs = append(errs, &ValidationError{
 				Task:  name,
-				Field: "cmd",
-				Msg:   "cmd specification cannot be empty",
-			}
+				Field: "",
+				Msg:   "task specification cannot be loaded",
+			})
 		}
 
 		if reflect.ValueOf(task).IsZero() {
-			return nil, &ValidationError{
+			errs = append(errs, &ValidationError{
 				Task:  name,
 				Field: "",
 				Msg:   "task specification cannot be empty",
-			}
+			})
+		}
+
+		if task.Cmd == "" {
+			errs = append(errs, &ValidationError{
+				Task:  name,
+				Field: "cmd",
+				Msg:   "cmd specification cannot be empty",
+			})
 		}
 
 		tasks[name] = task
 	}
 
-	return tasks, nil
-}
+	return tasks, errors.Join(errs...)
