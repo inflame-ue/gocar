@@ -7,9 +7,20 @@ import (
 
 var EmptyDocumentError = errors.New("task specification is empty")
 
-// Indicates a validation problem with task specification during parsing.
+// Indicates a decoding/loading problem with a particular YAML configuration.
+type DocumentError struct {
+	Msg   string
+	Cause error
+}
+
+func (de *DocumentError) Error() string {
+	return de.Msg
+}
+
+// Indicates a validation problem with a particular task specification during parsing.
 type ValidationError struct {
 	Task, Field, Msg string
+	Cause            error
 }
 
 func (ve *ValidationError) Error() string {
