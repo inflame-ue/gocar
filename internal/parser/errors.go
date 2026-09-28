@@ -14,7 +14,7 @@ type ParserError interface {
 	Unwrap() error
 }
 
-// DocumentError indicates a decoding/loading problem with a particular YAML 
+// DocumentError indicates a decoding/loading problem with a particular YAML
 // configuration. Implements the ParserError interface for convenience.
 type DocumentError struct {
 	Msg   string
@@ -34,7 +34,7 @@ func (de *DocumentError) Unwrap() error {
 	return de.Cause
 }
 
-// ValidationError indicates a validation problem with a particular task 
+// ValidationError indicates a validation problem with a particular task
 // specification during parsing. Implements the ParserError interface for convenience.
 type ValidationError struct {
 	Task, Field, Msg string
