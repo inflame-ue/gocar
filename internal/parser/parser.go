@@ -2,9 +2,11 @@ package parser
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"io"
 	"reflect"
+	"slices"
 
 	"github.com/inflame-ue/gocar/internal/task"
 	"go.yaml.in/yaml/v4"
@@ -33,12 +35,15 @@ func parseRawTasks(data []byte) (rawTasks, error) {
 	d := yaml.NewDecoder(r)
 
 	if err := d.Decode(&raw); err != nil {
+
+		// no valid YAML found
 		if errors.Is(err, io.EOF) {
 			return nil, EmptyDocumentError
 		}
+
 		return nil, &DocumentError{
 			Cause: err,
-			Msg: err.Error(),
+			Msg:   err.Error(),
 		}
 	}
 
@@ -53,6 +58,7 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 	var tasks = make(Tasks)
 	var errs []error
 
+	// reminder: one error per-task
 	for name, node := range raw {
 		var task task.Task
 
@@ -86,6 +92,12 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 
 		tasks[name] = task
 	}
+
+	// map iteration is random in Go, and we want errs to be in the same order
+	// hence we sort on err.Task to ensure idempotency between runs if no changes happen
+	slices.SortFunc(errs, func(errA error, errB error) int {
+		return cmp.Compare(errTask(errA), errTask(errB))
+	})
 
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
