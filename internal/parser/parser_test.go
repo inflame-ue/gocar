@@ -58,7 +58,47 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
-	}
+		"empty": {
+			filename: "empty.yaml",
+			wantErr:  EmptyDocumentError,
+			want:     nil,
+		},
+		"whitespace-only": {
+			filename: "whitespace.yaml",
+			wantErr:  EmptyDocumentError,
+			want:     nil,
+		},
+		"comment-only": {
+			filename: "comment.yaml",
+			wantErr: EmptyDocumentError,
+			want: nil,
+		},
+		"missing cmd": {
+			filename: "nocmd.yaml",
+			wantErr:  &ValidationError{},
+			want:     nil,
+		},
+		"uknown field": {
+			filename: "unknown.yaml",
+			wantErr: &ValidationError{},
+			want: nil,
+		},
+		"duplicate key": {
+			filename: "duplicate.yaml",
+			wantErr: &ValidationError{},
+			want: nil,
+		},
+		"empty task": {
+			filename: "emptytask.yaml",
+			wantErr: &ValidationError{},
+			want: nil,
+		},
+		"task not a map": {
+			filename: "notamap.yaml",
+			wantErr: &ValidationError{},
+			want: nil,
+		},
+}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -81,7 +121,7 @@ func TestParse(t *testing.T) {
 
 			if err != nil && tc.wantErr != nil {
 				// TODO: implement the error type checking
-				// return early to not compare the tasks
+				// return early to not compare
 				return
 			}
 
