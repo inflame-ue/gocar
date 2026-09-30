@@ -61,44 +61,44 @@ func TestParse(t *testing.T) {
 		"empty": {
 			filename: "empty.yaml",
 			wantErr:  EmptyDocumentError,
-			want:     nil,
 		},
 		"whitespace-only": {
 			filename: "whitespace.yaml",
 			wantErr:  EmptyDocumentError,
-			want:     nil,
 		},
 		"comment-only": {
 			filename: "comment.yaml",
-			wantErr: EmptyDocumentError,
-			want: nil,
+			wantErr:  EmptyDocumentError,
+		},
+		"empty document": {
+			filename: "emptydoc.yaml",
+			wantErr:  EmptyDocumentError,
+		},
+		"bad document": {
+			filename: "baddoc.yaml",
+			wantErr:  &DocumentError{},
 		},
 		"missing cmd": {
 			filename: "nocmd.yaml",
 			wantErr:  &ValidationError{},
-			want:     nil,
 		},
-		"uknown field": {
+		"unknown field": {
 			filename: "unknown.yaml",
-			wantErr: &ValidationError{},
-			want: nil,
+			wantErr:  &ValidationError{},
 		},
 		"duplicate key": {
 			filename: "duplicate.yaml",
-			wantErr: &ValidationError{},
-			want: nil,
+			wantErr:  &ValidationError{},
 		},
 		"empty task": {
 			filename: "emptytask.yaml",
-			wantErr: &ValidationError{},
-			want: nil,
+			wantErr:  &ValidationError{},
 		},
 		"task not a map": {
 			filename: "notamap.yaml",
-			wantErr: &ValidationError{},
-			want: nil,
+			wantErr:  &ValidationError{},
 		},
-}
+	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
