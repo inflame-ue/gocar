@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"errors"
 	"maps"
 	"slices"
 	"testing"
@@ -11,12 +12,29 @@ import (
 func checkWantErr(t *testing.T, got error, want *MissingDepError) {
 	t.Helper()
 
-	if err != nil && tc.wantErr == nil {
-		t.Fatalf("expected no err, got %v", err)
+	if got == nil && want == nil {
+		return
 	}
 
-	if err == nil && tc.wantErr != nil {
+	if got != nil && want == nil {
+		t.Fatalf("expected no err, got %v", got)
+	}
+
+	if got == nil && want != nil {
 		t.Fatal("expected an err, got no err instead")
+	}
+
+	var mde MissingDepError
+	if !errors.As(got, &mde) {
+		t.Errorf("expected err type MissingDepError, got %T instead", got)
+	}
+
+	if mde.Task != want.Task {
+		t.Errorf("expected task %s, got %s instead", want.Task, mde.Task)
+	}
+
+	if mde.Dep != want.Dep {
+		t.Errorf("expected dep %s, got %s instead", want.Dep, mde.Dep)
 	}
 }
 
@@ -160,7 +178,14 @@ func TestBuild(t *testing.T) {
 				t.Errorf("graph build: in-degree counts for each node are incorrect")
 			}
 
-			for task := range tc.want.deps {
+			for task := range got.deps {
+				if !slices.Equal(tc.want.deps[task], got.deps[task]) {
+					t.Error("graph build: deps for each node are not equal")
+				}
+
+				if !slices.Equal(tc.want.rdeps[task], got.rdeps[task]) {
+					t.Error("graph build: rdeps for each node are not equal")
+				}
 			}
 		})
 	}
