@@ -1,0 +1,5 @@
+build:
+  cmd: go build main.go
+  inputs: [main.go]
+  outputs: [main]
+  unknown: why?
