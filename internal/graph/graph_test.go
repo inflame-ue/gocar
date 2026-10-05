@@ -223,6 +223,7 @@ func TestCycle(t *testing.T) {
 				},
 			},
 			wantFound: false,
+			wantCycle: nil,
 		},
 		"valid diamond graph": {
 			graph: &Graph{
@@ -246,6 +247,7 @@ func TestCycle(t *testing.T) {
 				},
 			},
 			wantFound: false,
+			wantCycle: nil,
 		},
 		"cyclic linked list graph": {
 			graph: &Graph{
@@ -279,6 +281,10 @@ func TestCycle(t *testing.T) {
 
 			if !found && tc.wantFound {
 				t.Errorf("expected a cycle, but none were found")
+			}
+
+			if cycle == nil && tc.wantCycle == nil {
+				return
 			}
 
 			if slices.Equal(cycle, tc.wantCycle) {
