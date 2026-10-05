@@ -233,11 +233,11 @@ func TestCycle(t *testing.T) {
 			graph: &Graph{
 				deps: map[string][]string{
 					"format": []string{},
-					"vet": []string{"format"},
-					"lint": []string{"format"},
-					"build": []string{"vet", "lint"},
-					"run": []string{"lint"},
-				},	
+					"vet":    []string{"format"},
+					"lint":   []string{"format"},
+					"build":  []string{"vet", "lint"},
+					"run":    []string{"lint"},
+				},
 			},
 			wantFound: false,
 			wantCycle: nil,
