@@ -7,13 +7,6 @@ import (
 
 var EmptyDocumentError = errors.New("task specification is empty")
 
-// ParserError describes a parsing error that has allows for wrapping of errors
-// from yamlv4 library. Use Unwrap to access the underlying yamlv4 library error.
-type ParserError interface {
-	error
-	Unwrap() error
-}
-
 // DocumentError indicates a decoding/loading problem with a particular YAML
 // configuration. Implements the ParserError interface for convenience.
 type DocumentError struct {

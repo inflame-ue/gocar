@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -8,6 +9,12 @@ import (
 
 	"github.com/inflame-ue/gocar/internal/task"
 )
+
+type wantError struct {
+	is          error
+	as          error
+	task, field string
+}
 
 func stringSliceEqual(a, b []string) bool {
 	s1, s2 := slices.Clone(a), slices.Clone(b)
@@ -22,15 +29,50 @@ func stringSliceEqual(a, b []string) bool {
 	return slices.Equal(s1, s2)
 }
 
+func checkWantErr(t *testing.T, got error, want *wantError) {
+	t.Helper()
+
+	if got == nil && want == nil {
+		return
+	}
+
+	if got != nil && want == nil {
+		t.Fatalf("expected no err, got %v", got)
+	}
+
+	if got == nil && want != nil {
+		t.Fatal("expected err, got no err instead")
+	}
+
+	if want.is != nil && !errors.Is(got, want.is) {
+		t.Errorf("expected err type %T, got %T instead", want.is, got)
+	}
+
+	if want.task != "" || want.field != "" {
+		var ve *ValidationError
+
+		if !errors.As(got, &ve) {
+			t.Fatalf("expected ValidationError, got %T", got)
+		}
+
+		if ve.Task != want.task {
+			t.Errorf("expected task %s, got %s instead", want.task, ve.Task)
+		}
+
+		if ve.Field != want.field {
+			t.Errorf("expected field %s, got %s instead", want.field, ve.Field)
+		}
+	}
+}
+
 func TestParse(t *testing.T) {
 	tests := map[string]struct {
 		filename string
-		wantErr  error
+		wantErr  *wantError
 		want     Tasks
 	}{
 		"valid YAML": {
 			filename: "gocar.yaml",
-			wantErr:  nil,
 			want: Tasks{
 				"mkout": task.Task{
 					Cmd: "mkdir out",
@@ -60,43 +102,69 @@ func TestParse(t *testing.T) {
 		},
 		"empty": {
 			filename: "empty.yaml",
-			wantErr:  EmptyDocumentError,
+			wantErr: &wantError{
+				is: EmptyDocumentError,
+			},
 		},
 		"whitespace-only": {
 			filename: "whitespace.yaml",
-			wantErr:  EmptyDocumentError,
+			wantErr: &wantError{
+				is: EmptyDocumentError,
+			},
 		},
 		"comment-only": {
 			filename: "comment.yaml",
-			wantErr:  EmptyDocumentError,
+			wantErr: &wantError{
+				is: EmptyDocumentError,
+			},
 		},
 		"empty document": {
 			filename: "emptydoc.yaml",
-			wantErr:  EmptyDocumentError,
+			wantErr: &wantError{
+				is: EmptyDocumentError,
+			},
 		},
 		"bad document": {
 			filename: "baddoc.yaml",
-			wantErr:  &DocumentError{},
+			wantErr: &wantError{
+				as: &DocumentError{},
+			},
 		},
 		"missing cmd": {
 			filename: "nocmd.yaml",
-			wantErr:  &ValidationError{},
+			wantErr: &wantError{
+				as:    &ValidationError{},
+				task:  "build",
+				field: "cmd",
+			},
 		},
 		"unknown field": {
 			filename: "unknown.yaml",
-			wantErr:  &ValidationError{},
+			wantErr: &wantError{
+				as:   &ValidationError{},
+				task: "build",
+			},
 		},
 		"duplicate key": {
 			filename: "duplicate.yaml",
-			wantErr:  &ValidationError{},
+			wantErr: &wantError{
+				as:   &ValidationError{},
+				task: "build",
+			},
 		},
 		"empty task": {
 			filename: "emptytask.yaml",
-			wantErr:  &ValidationError{},
+			wantErr: &wantError{
+				as:   &ValidationError{},
+				task: "build",
+			},
 		},
 		"task not a map": {
 			filename: "notamap.yaml",
-			wantErr:  &ValidationError{},
+			wantErr: &wantError{
+				as:   &ValidationError{},
+				task: "build",
+			},
 		},
 	}
 
@@ -111,19 +179,8 @@ func TestParse(t *testing.T) {
 			}
 
 			tasks, err := Parse(data)
-			if err != nil && tc.wantErr == nil {
-				t.Fatalf("expected no err, got %v", err)
-			}
 
-			if err == nil && tc.wantErr != nil {
-				t.Fatal("expected err, got no err instead")
-			}
-
-			if err != nil && tc.wantErr != nil {
-				// TODO: implement the error type checking
-				// return early to not compare
-				return
-			}
+			checkWantErr(t, err, tc.wantErr)
 
 			if len(tasks) != len(tc.want) {
 				t.Errorf("expected %d tasks, got %d instead", len(tc.want), len(tasks))
