@@ -24,7 +24,7 @@ func checkWantErr(t *testing.T, got error, want *MissingDepError) {
 		t.Fatal("expected an err, got no err instead")
 	}
 
-	var mde MissingDepError
+	var mde *MissingDepError
 	if !errors.As(got, &mde) {
 		t.Errorf("expected err type MissingDepError, got %T instead", got)
 	}
@@ -112,10 +112,10 @@ func TestBuild(t *testing.T) {
 					"format": []string{},
 					"vet":    []string{"format"},
 					"lint":   []string{"format"},
-					"build":  []string{"vet", "lint"},
+					"build":  []string{"lint", "vet"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"vet", "lint"},
+					"format": []string{"lint", "vet"},
 					"vet":    []string{"build"},
 					"lint":   []string{"build"},
 					"build":  []string{},
@@ -131,14 +131,14 @@ func TestBuild(t *testing.T) {
 		"missing dep graph": {
 			spec: map[string]task.Task{
 				"build": task.Task{
-					Cmd: "go build ./...",
+					Cmd:  "go build ./...",
 					Deps: []string{"format"},
 				},
 			},
 			want: nil,
 			wantErr: &MissingDepError{
 				Task: "build",
-				Dep: "format",
+				Dep:  "format",
 			},
 		},
 		"duplicate deps graph": {
@@ -147,22 +147,22 @@ func TestBuild(t *testing.T) {
 					Cmd: "go fmt ./...",
 				},
 				"build": task.Task{
-					Cmd: "go build ./...",
+					Cmd:  "go build ./...",
 					Deps: []string{"format", "format"},
 				},
 			},
 			want: &Graph{
 				deps: map[string][]string{
 					"format": []string{},
-					"build": []string{"format"},
+					"build":  []string{"format"},
 				},
 				rdeps: map[string][]string{
 					"format": []string{"build"},
-					"build": []string{},
+					"build":  []string{},
 				},
 				indeg: map[string]int{
 					"format": 0,
-					"build": 1,
+					"build":  1,
 				},
 			},
 		},
@@ -170,15 +170,25 @@ func TestBuild(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := Build(tc.spec)
 
 			checkWantErr(t, err, tc.wantErr)
+
+			if got == nil || tc.want == nil {
+				return
+			}
 
 			if !maps.Equal(tc.want.indeg, got.indeg) {
 				t.Errorf("graph build: in-degree counts for each node are incorrect")
 			}
 
-			for task := range got.deps {
+			if len(tc.want.deps) != len(got.deps) {
+				t.Errorf("graph build: expected %d tasks, got %d instead", len(tc.want.deps), len(got.deps))
+			}
+
+			for task := range tc.want.deps {
 				if !slices.Equal(tc.want.deps[task], got.deps[task]) {
 					t.Error("graph build: deps for each node are not equal")
 				}
