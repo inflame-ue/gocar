@@ -36,7 +36,7 @@ func Build(spec map[string]task.Task) (*Graph, error) {
 	for _, name := range names {
 		graph.rdeps[name] = []string{}
 	}
-	
+
 	for _, name := range names {
 		if dep, ok := missingDep(spec, name); ok {
 			return nil, &MissingDepError{
