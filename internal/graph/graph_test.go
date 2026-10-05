@@ -283,11 +283,7 @@ func TestCycle(t *testing.T) {
 				t.Errorf("expected a cycle, but none were found")
 			}
 
-			if cycle == nil && tc.wantCycle == nil {
-				return
-			}
-
-			if slices.Equal(cycle, tc.wantCycle) {
+			if !slices.Equal(cycle, tc.wantCycle) {
 				t.Errorf("expected cycle %v, got %v instead", tc.wantCycle, cycle)
 			}
 		})
