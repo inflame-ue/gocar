@@ -7,5 +7,5 @@ type MissingDepError struct {
 }
 
 func (mde *MissingDepError) Error() string {
-	return fmt.Sprintf("task %s: depedency %s does not exist", mde.Task, mde.Dep)
+	return fmt.Sprintf("task %s depends on non-existent %s", mde.Task, mde.Dep)
 }

@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"fmt"
 	"maps"
 	"slices"
 
@@ -14,22 +13,45 @@ type Graph struct {
 	indeg map[string]int
 }
 
+func missingDep(spec map[string]task.Task, task string) (string, bool) {
+	for _, dep := range spec[task].Deps {
+		if _, ok := spec[dep]; !ok {
+			return dep, true
+		}
+	}
+
+	return "", false
+}
+
 func Build(spec map[string]task.Task) (*Graph, error) {
-	if spec == nil {
-		return &Graph{}, nil
+	graph := Graph{
+		deps:  map[string][]string{},
+		rdeps: map[string][]string{},
+		indeg: map[string]int{},
 	}
 
 	names := slices.Sorted(maps.Keys(spec))
 	for _, name := range names {
-		for _, dep := range spec[name].Deps {
-			if _, ok := spec[dep]; !ok {
-				return nil, &MissingDepError{
-					Task: name,
-					Dep: dep,
-				}
+		if dep, ok := missingDep(spec, name); ok {
+			return nil, &MissingDepError{
+				Task: name,
+				Dep:  dep,
 			}
 		}
+
+		// could potentially error here to avoid faulty tasks
+		// for now remove dup dependencies for better ux
+		uniqueDeps := slices.Clone(spec[name].Deps)
+		slices.Sort(uniqueDeps)
+		uniqueDeps = slices.Compact(uniqueDeps)
+
+		for _, dep := range uniqueDeps {
+			graph.rdeps[dep] = append(graph.rdeps[dep], name)
+		}
+
+		graph.indeg[name] = len(uniqueDeps)
+		graph.deps[name] = uniqueDeps
 	}
 
-	return nil, nil
+	return &graph, nil
 }
