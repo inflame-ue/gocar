@@ -203,7 +203,7 @@ func TestBuild(t *testing.T) {
 
 func TestCycle(t *testing.T) {
 	tests := map[string]struct {
-		graph    *Graph
+		graph     *Graph
 		wantCycle []string
 		wantFound bool
 	}{
@@ -262,10 +262,28 @@ func TestCycle(t *testing.T) {
 					"build":  1,
 				},
 			},
-			wantwantFound: true,
+			wantFound: true,
 			wantCycle: []string{"format", "build", "format"},
 		},
 	}
 
-	
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			cycle, found := tc.graph.Cycle()
+
+			if found && !tc.wantFound {
+				t.Errorf("did not expect a cycle, but one was found")
+			}
+
+			if !found && tc.wantFound {
+				t.Errorf("expected a cycle, but none were found")
+			}
+
+			if slices.Equal(cycle, tc.wantCycle) {
+				t.Errorf("expected cycle %v, got %v instead", tc.wantCycle, cycle)
+			}
+		})
+	}
 }
