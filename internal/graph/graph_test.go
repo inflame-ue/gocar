@@ -1,10 +1,24 @@
 package graph
 
 import (
+	"maps"
+	"slices"
 	"testing"
 
 	"github.com/inflame-ue/gocar/internal/task"
 )
+
+func checkWantErr(t *testing.T, got error, want *MissingDepError) {
+	t.Helper()
+
+	if err != nil && tc.wantErr == nil {
+		t.Fatalf("expected no err, got %v", err)
+	}
+
+	if err == nil && tc.wantErr != nil {
+		t.Fatal("expected an err, got no err instead")
+	}
+}
 
 func TestBuild(t *testing.T) {
 	tests := map[string]struct {
@@ -134,5 +148,20 @@ func TestBuild(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := Build(tc.spec)
+
+			checkWantErr(t, err, tc.wantErr)
+
+			if !maps.Equal(tc.want.indeg, got.indeg) {
+				t.Errorf("graph build: in-degree counts for each node are incorrect")
+			}
+
+			for task := range tc.want.deps {
+			}
+		})
 	}
 }

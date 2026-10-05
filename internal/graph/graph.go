@@ -31,6 +31,12 @@ func Build(spec map[string]task.Task) (*Graph, error) {
 	}
 
 	names := slices.Sorted(maps.Keys(spec))
+
+	// pre-populate rdeps to not return nil-slice
+	for _, name := range names {
+		graph.rdeps[name] = []string{}
+	}
+	
 	for _, name := range names {
 		if dep, ok := missingDep(spec, name); ok {
 			return nil, &MissingDepError{
