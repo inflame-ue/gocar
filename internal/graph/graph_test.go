@@ -200,3 +200,72 @@ func TestBuild(t *testing.T) {
 		})
 	}
 }
+
+func TestCycle(t *testing.T) {
+	tests := map[string]struct {
+		graph    *Graph
+		wantCycle []string
+		wantFound bool
+	}{
+		"valid linked list graph": {
+			graph: &Graph{
+				deps: map[string][]string{
+					"format": []string{},
+					"build":  []string{"format"},
+				},
+				rdeps: map[string][]string{
+					"format": []string{"build"},
+					"build":  []string{},
+				},
+				indeg: map[string]int{
+					"format": 0,
+					"build":  1,
+				},
+			},
+			wantFound: false,
+		},
+		"valid diamond graph": {
+			graph: &Graph{
+				deps: map[string][]string{
+					"format": []string{},
+					"vet":    []string{"format"},
+					"lint":   []string{"format"},
+					"build":  []string{"lint", "vet"},
+				},
+				rdeps: map[string][]string{
+					"format": []string{"lint", "vet"},
+					"vet":    []string{"build"},
+					"lint":   []string{"build"},
+					"build":  []string{},
+				},
+				indeg: map[string]int{
+					"format": 0,
+					"vet":    1,
+					"lint":   1,
+					"build":  2,
+				},
+			},
+			wantFound: false,
+		},
+		"cyclic linked list graph": {
+			graph: &Graph{
+				deps: map[string][]string{
+					"format": []string{"build"},
+					"build":  []string{"format"},
+				},
+				rdeps: map[string][]string{
+					"format": []string{"build"},
+					"build":  []string{"format"},
+				},
+				indeg: map[string]int{
+					"format": 1,
+					"build":  1,
+				},
+			},
+			wantwantFound: true,
+			wantCycle: []string{"format", "build", "format"},
+		},
+	}
+
+	
+}
