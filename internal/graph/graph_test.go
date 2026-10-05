@@ -213,14 +213,6 @@ func TestCycle(t *testing.T) {
 					"format": []string{},
 					"build":  []string{"format"},
 				},
-				rdeps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{},
-				},
-				indeg: map[string]int{
-					"format": 0,
-					"build":  1,
-				},
 			},
 			wantFound: false,
 			wantCycle: nil,
@@ -233,18 +225,19 @@ func TestCycle(t *testing.T) {
 					"lint":   []string{"format"},
 					"build":  []string{"lint", "vet"},
 				},
-				rdeps: map[string][]string{
-					"format": []string{"lint", "vet"},
-					"vet":    []string{"build"},
-					"lint":   []string{"build"},
-					"build":  []string{},
-				},
-				indeg: map[string]int{
-					"format": 0,
-					"vet":    1,
-					"lint":   1,
-					"build":  2,
-				},
+			},
+			wantFound: false,
+			wantCycle: nil,
+		},
+		"tree-style branching graph": {
+			graph: &Graph{
+				deps: map[string][]string{
+					"format": []string{},
+					"vet": []string{"format"},
+					"lint": []string{"format"},
+					"build": []string{"vet", "lint"},
+					"run": []string{"lint"},
+				},	
 			},
 			wantFound: false,
 			wantCycle: nil,
@@ -255,17 +248,43 @@ func TestCycle(t *testing.T) {
 					"format": []string{"build"},
 					"build":  []string{"format"},
 				},
-				rdeps: map[string][]string{
+			},
+			wantFound: true,
+			wantCycle: []string{"build", "format", "build"},
+		},
+		"cyclic diamond graph": {
+			graph: &Graph{
+				deps: map[string][]string{
 					"format": []string{"build"},
-					"build":  []string{"format"},
-				},
-				indeg: map[string]int{
-					"format": 1,
-					"build":  1,
+					"vet":    []string{"format"},
+					"lint":   []string{"format"},
+					"build":  []string{"lint", "vet"},
 				},
 			},
 			wantFound: true,
-			wantCycle: []string{"format", "build", "format"},
+			wantCycle: []string{"build", "lint", "format", "build"},
+		},
+		"self-loop graph": {
+			graph: &Graph{
+				deps: map[string][]string{
+					"build": []string{"build"},
+				},
+			},
+			wantFound: true,
+			wantCycle: []string{"build", "build"},
+		},
+		"disconnected component graph": {
+			graph: &Graph{
+				deps: map[string][]string{
+					"format": []string{},
+					"build":  []string{"format"},
+					"lint":   []string{"run"},
+					"vet":    []string{"lint"},
+					"run":    []string{"vet"},
+				},
+			},
+			wantFound: true,
+			wantCycle: []string{"lint", "run", "vet", "lint"},
 		},
 	}
 

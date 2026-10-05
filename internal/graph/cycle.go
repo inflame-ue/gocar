@@ -15,8 +15,7 @@ const (
 
 func (g *Graph) walk(node string, colors map[string]color, path *[]string) ([]string, bool) {
 	cycle := []string{}
-	found := false
-	
+
 	colors[node] = grey
 	*path = append(*path, node)
 
@@ -25,20 +24,22 @@ func (g *Graph) walk(node string, colors map[string]color, path *[]string) ([]st
 
 		if col == grey {
 			temp := slices.Clone((*path)[slices.Index(*path, dep):])
-			cycle, found = append(temp, dep), true
+			cycle = append(temp, dep)
 
-			return cycle, found
+			return cycle, true
 		}
 
 		if col == white {
-			return g.walk(dep, colors, path)
+			if col, ok := g.walk(dep, colors, path); ok {
+				return col, true
+			}
 		}
 	}
 
 	colors[node] = black
 	*path = (*path)[:len(*path)-1]
 
-	return cycle, found
+	return cycle, false
 }
 
 func (g *Graph) Cycle() ([]string, bool) {
@@ -47,8 +48,9 @@ func (g *Graph) Cycle() ([]string, bool) {
 
 	nodes := slices.Sorted(maps.Keys(g.deps))
 	for _, node := range nodes {
+		// we only want to walk unvisited(white) nodes
 		if col := colors[node]; col == white {
-			if cycle, found :=  g.walk(node, colors, &path); found {
+			if cycle, found := g.walk(node, colors, &path); found {
 				return cycle, true
 			}
 		}
