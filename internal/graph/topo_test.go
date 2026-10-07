@@ -187,7 +187,6 @@ func TestKahn(t *testing.T) {
 	}
 }
 
-
 func TestDFSOrder(t *testing.T) {
 	tests := map[string]struct {
 		graph     *Graph

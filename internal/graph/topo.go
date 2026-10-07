@@ -72,6 +72,7 @@ func (g *Graph) visit(node string, colors map[string]color, order *[]string) err
 	return nil
 }
 
+// DFSOrder is a modification of g.Cycle to determine topological order.
 func (g *Graph) DFSOrder() ([]string, error) {
 	var order []string
 	colors := map[string]color{}
@@ -81,7 +82,7 @@ func (g *Graph) DFSOrder() ([]string, error) {
 		if _, ok := colors[node]; ok {
 			continue
 		}
-		
+
 		if err := g.visit(node, colors, &order); err != nil {
 			return nil, err
 		}
