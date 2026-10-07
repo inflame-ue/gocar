@@ -45,3 +45,45 @@ func (g *Graph) Kahn() ([]string, error) {
 
 	return order, nil
 }
+
+func (g *Graph) visit(node string, colors map[string]color, order *[]string) error {
+	if col, ok := colors[node]; ok && col == black {
+		return nil
+	}
+
+	if col, ok := colors[node]; ok && col == grey {
+		cycle, _ := g.Cycle()
+		return &CycleError{
+			Path: cycle,
+		}
+	}
+
+	colors[node] = grey
+
+	for _, dep := range g.deps[node] {
+		g.visit(dep, colors, order)
+	}
+
+	colors[node] = black
+	*order = append(*order, node)
+
+	return nil
+}
+
+func (g *Graph) DFSOrder() ([]string, error) {
+	var order []string
+	colors := map[string]color{}
+
+	nodes := slices.Sorted(maps.Keys(g.deps))
+	for _, node := range nodes {
+		if _, ok := colors[node]; ok {
+			continue
+		}
+		
+		if err := g.visit(node, colors, &order); err != nil {
+			return nil, err
+		}
+	}
+
+	return order, nil
+}
