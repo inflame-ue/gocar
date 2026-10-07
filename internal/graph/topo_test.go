@@ -260,7 +260,7 @@ func TestDFSOrder(t *testing.T) {
 					"run":    1,
 				},
 			},
-			wantOrder: []string{"format", "lint", "vet", "build", "run"},
+			wantOrder: []string{"format", "vet", "lint", "build", "run"},
 			wantErr:   nil,
 		},
 		"disconnected component graph": {
