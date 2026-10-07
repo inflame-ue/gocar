@@ -61,7 +61,9 @@ func (g *Graph) visit(node string, colors map[string]color, order *[]string) err
 	colors[node] = grey
 
 	for _, dep := range g.deps[node] {
-		g.visit(dep, colors, order)
+		if err := g.visit(dep, colors, order); err != nil {
+			return err
+		}
 	}
 
 	colors[node] = black
