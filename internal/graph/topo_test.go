@@ -51,7 +51,7 @@ func TestKahn(t *testing.T) {
 					"build":  2,
 				},
 			},
-			wantOrder: []string{"format", "vet", "lint", "build"},
+			wantOrder: []string{"format", "lint", "vet", "build"},
 			wantErr:   nil,
 		},
 		"tree-style branching graph": {
@@ -78,7 +78,7 @@ func TestKahn(t *testing.T) {
 					"run":    1,
 				},
 			},
-			wantOrder: []string{"format", "vet", "lint", "run", "build"},
+			wantOrder: []string{"format", "lint", "run", "vet", "build"},
 			wantErr:   nil,
 		},
 		"disconnected component graph": {
@@ -114,6 +114,14 @@ func TestKahn(t *testing.T) {
 					"format": []string{"build"},
 					"build":  []string{"format"},
 				},
+				rdeps: map[string][]string{
+					"format": []string{"build"},
+					"build":  []string{"format"},
+				},
+				indeg: map[string]int{
+					"format": 1,
+					"build":  1,
+				},
 			},
 			wantOrder: nil,
 			wantErr: &CycleError{
@@ -127,6 +135,18 @@ func TestKahn(t *testing.T) {
 					"vet":    []string{"format"},
 					"lint":   []string{"format"},
 					"build":  []string{"lint", "vet"},
+				},
+				rdeps: map[string][]string{
+					"format": []string{"vet", "lint"},
+					"vet":    []string{"build"},
+					"lint":   []string{"build"},
+					"build":  []string{"format"},
+				},
+				indeg: map[string]int{
+					"format": 1,
+					"vet":    1,
+					"lint":   1,
+					"build":  2,
 				},
 			},
 			wantOrder: nil,
