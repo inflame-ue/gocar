@@ -18,11 +18,5 @@ type CycleError struct {
 }
 
 func (ce *CycleError) Error() string {
-	var builder strings.Builder
-	
-	for _, node := range ce.Path {
-		_, _ = builder.WriteString(fmt.Sprintf("%s -> ", node))
-	}
-
-	return builder.String()
+	return strings.Join(ce.Path, " -> ")
 }
