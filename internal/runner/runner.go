@@ -3,7 +3,6 @@ package runner
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -32,7 +31,10 @@ func (r *Runner) Run(ctx context.Context, spec map[string]task.Task, order []str
 		t, ok := spec[name]
 
 		if !ok {
-			return errors.New("task not in spec") // placeholder, will make a separate error type later
+			return &TaskError{
+				Task: name,
+				Err:  errors.New("task name does not exist in spec"),
+			}
 		}
 
 		// run as a shell to not deal with manual arg determination and stuffs
@@ -42,7 +44,10 @@ func (r *Runner) Run(ctx context.Context, spec map[string]task.Task, order []str
 
 		err := cmd.Run()
 		if err != nil {
-			return fmt.Errorf("cmd.Run failed: %v", err) // also a placeholder for now
+			return &TaskError{
+				Task: name,
+				Err:  err,
+			}
 		}
 	}
 
