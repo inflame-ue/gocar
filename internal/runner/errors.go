@@ -8,7 +8,7 @@ type TaskError struct {
 }
 
 func (te *TaskError) Error() string {
-	return fmt.Sprintf("task %s: failed execution with os reporting %q", te.Task, te.Err.Error())
+	return fmt.Sprintf("task %s: %v", te.Task, te.Err)
 }
 
 func (te *TaskError) Unwrap() error {
