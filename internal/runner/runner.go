@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 
 	"github.com/inflame-ue/gocar/internal/task"
@@ -13,6 +14,17 @@ import (
 type Runner struct {
 	Stdout io.Writer
 	Stderr io.Writer
+}
+
+func NewRunner(stdout io.Writer, stderrr io.Writer) *Runner {
+	return &Runner{
+		Stdout: stdout,
+		Stderr: stderrr,
+	}
+}
+
+func Run(ctx context.Context, spec map[string]task.Task, order []string) error {
+	return (&Runner{Stdout: os.Stdout, Stderr: os.Stderr}).Run(ctx, spec, order)
 }
 
 func (r *Runner) Run(ctx context.Context, spec map[string]task.Task, order []string) error {
