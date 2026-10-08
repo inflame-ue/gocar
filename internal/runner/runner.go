@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"os/exec"
 
 	"github.com/inflame-ue/gocar/internal/task"
 )
@@ -13,19 +12,25 @@ import (
 type Runner struct {
 	Stdout io.Writer
 	Stderr io.Writer
+	cmder  commander
 }
 
-func NewRunner(stdout io.Writer, stderrr io.Writer) *Runner {
+func NewRunner(stdout io.Writer, stderr io.Writer) *Runner {
 	return &Runner{
 		Stdout: stdout,
-		Stderr: stderrr,
+		Stderr: stderr,
+		cmder:  &shellCommander{},
 	}
 }
 
+// Run provides a common use-case for the Runner.Run method, where
+// stdout is os.Stdout and stderr is os.Stderr.
 func Run(ctx context.Context, spec map[string]task.Task, order []string) error {
-	return (&Runner{Stdout: os.Stdout, Stderr: os.Stderr}).Run(ctx, spec, order)
+	return NewRunner(os.Stdout, os.Stderr).Run(ctx, spec, order)
 }
 
+// Runner.Run orchestrates by using the order to extract tasks from the spec
+// and then delegates actual command execution.
 func (r *Runner) Run(ctx context.Context, spec map[string]task.Task, order []string) error {
 	for _, name := range order {
 		t, ok := spec[name]
@@ -37,12 +42,8 @@ func (r *Runner) Run(ctx context.Context, spec map[string]task.Task, order []str
 			}
 		}
 
-		// run as a shell to not deal with manual arg determination and stuffs
-		cmd := exec.CommandContext(ctx, "sh", "-c", t.Cmd)
-		cmd.Stdout = r.Stdout
-		cmd.Stderr = r.Stderr
-
-		err := cmd.Run()
+		// delegate actual execution of the command
+		err := r.cmder.run(ctx, t.Cmd, r.Stdout, r.Stderr)
 		if err != nil {
 			return &TaskError{
 				Task: name,
