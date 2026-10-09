@@ -8,11 +8,16 @@ import (
 	"github.com/inflame-ue/gocar/internal/task"
 )
 
-func Keys(spec map[string]task.Task, order []string) (map[string]string, error) {
-	var digests map[string][]byte
+type Fingerprinter struct {
+	Dir string
+}
 
-	h := sha256.New()
+func (f *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[string]string, error) {
+	digests := make(map[string][]byte, len(order))
+
 	for _, name := range order {
+		h := sha256.New()
+
 		t, ok := spec[name]
 		if !ok {
 			// placeholder for now
@@ -20,11 +25,10 @@ func Keys(spec map[string]task.Task, order []string) (map[string]string, error) 
 		}
 
 		writeField(h, []byte(t.Cmd))
-
 		digests[name] = h.Sum(nil)
 	}
 
-	var keys map[string]string
+	keys := make(map[string]string, len(order))
 	for key, digest := range digests {
 		keys[key] = hex.EncodeToString(digest)
 	}
