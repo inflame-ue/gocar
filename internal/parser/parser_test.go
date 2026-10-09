@@ -29,7 +29,7 @@ func stringSliceEqual(a, b []string) bool {
 	return slices.Equal(s1, s2)
 }
 
-func checkWantErr(t *testing.T, got error, want *wantError) {
+func checkParserErr(t *testing.T, got error, want *wantError) {
 	t.Helper()
 
 	if got == nil && want == nil {
@@ -180,7 +180,7 @@ func TestParse(t *testing.T) {
 
 			tasks, err := Parse(data)
 
-			checkWantErr(t, err, tc.wantErr)
+			checkParserErr(t, err, tc.wantErr)
 
 			if len(tasks) != len(tc.want) {
 				t.Errorf("expected %d tasks, got %d instead", len(tc.want), len(tasks))

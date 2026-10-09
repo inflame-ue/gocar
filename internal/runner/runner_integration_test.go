@@ -2,7 +2,6 @@ package runner
 
 import (
 	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,39 +54,18 @@ func TestRunIntegration(t *testing.T) {
 			ctx, dir := context.Background(), t.TempDir()
 			err := Run(ctx, tc.spec, tc.order, dir)
 
-			if err != nil && tc.wantErr == nil {
-				t.Fatalf("expected no err, got %v instead", err)
-			}
+			checkRunnerErr(t, err, tc.wantErr)
 
-			if err == nil && tc.wantErr != nil {
-				t.Fatal("expected an err, got no err instead")
-			}
-
-			if err != nil && tc.wantErr != nil {
-				if err != nil && tc.wantErr != nil {
-					var te *TaskError
-
-					if ok := errors.As(err, &te); !ok {
-						t.Fatalf("expected error type %T, got %T instead", tc.wantErr, err)
-					}
-
-					if te.Task != tc.wantErr.Task {
-						t.Errorf("expected to fail on task %s, failed on %s instead", tc.wantErr.Task, te.Task)
-					}
+			if tc.outputFile != "" {
+				data, err := os.ReadFile(filepath.Join(dir, tc.outputFile))
+				if err != nil {
+					t.Fatal(err)
 				}
 
-				return
+				if !(string(data) == tc.wantContent) {
+					t.Errorf("expected output file to contain %s, got %s instead", tc.wantContent, string(data))
+				}
 			}
-
-			data, err := os.ReadFile(filepath.Join(dir, tc.outputFile))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if !(string(data) == tc.wantContent) {
-				t.Errorf("expected output file to contain %s, got %s instead", tc.wantContent, string(data))
-			}
-
 		})
 	}
 }

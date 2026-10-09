@@ -6,6 +6,29 @@ import (
 	"testing"
 )
 
+func checkTopoErr(t *testing.T, got error, wantErr *CycleError) {
+	t.Helper()
+
+	if got != nil && wantErr == nil {
+		t.Fatalf("expected no err, got %v", got)
+	}
+
+	if got == nil && wantErr != nil {
+		t.Fatalf("expected an err %v, got no err instead", wantErr)
+	}
+
+	if got != nil && wantErr != nil {
+		var ce *CycleError
+		if ok := errors.As(got, &ce); !ok {
+			t.Errorf("expected err type %T, got %T instead", wantErr, got)
+		}
+
+		if !slices.Equal(ce.Path, wantErr.Path) {
+			t.Errorf("expected cycle %v, got %v instead", wantErr.Path, ce.Path)
+		}
+	}
+}
+
 func TestKahn(t *testing.T) {
 	tests := map[string]struct {
 		graph     *Graph
@@ -160,26 +183,8 @@ func TestKahn(t *testing.T) {
 			t.Parallel()
 
 			order, err := tc.graph.Kahn()
-
-			if err != nil && tc.wantErr == nil {
-				t.Fatalf("expected no err, got %v", err)
-			}
-
-			if err == nil && tc.wantErr != nil {
-				t.Fatalf("expected an err %v, got no err instead", tc.wantErr)
-			}
-
-			if err != nil && tc.wantErr != nil {
-				var ce *CycleError
-				if ok := errors.As(err, &ce); !ok {
-					t.Errorf("expected err type %T, got %T instead", tc.wantErr, err)
-				}
-
-				if !slices.Equal(ce.Path, tc.wantErr.Path) {
-					t.Errorf("expected cycle %v, got %v instead", tc.wantErr.Path, ce.Path)
-				}
-			}
-
+			
+			checkTopoErr(t, err, tc.wantErr)
 			if !slices.Equal(order, tc.wantOrder) {
 				t.Errorf("expected order %v, got %v instead", tc.wantOrder, order)
 			}
@@ -342,25 +347,7 @@ func TestDFSOrder(t *testing.T) {
 
 			order, err := tc.graph.DFSOrder()
 
-			if err != nil && tc.wantErr == nil {
-				t.Fatalf("expected no err, got %v", err)
-			}
-
-			if err == nil && tc.wantErr != nil {
-				t.Fatalf("expected an err %v, got no err instead", tc.wantErr)
-			}
-
-			if err != nil && tc.wantErr != nil {
-				var ce *CycleError
-				if ok := errors.As(err, &ce); !ok {
-					t.Errorf("expected err type %T, got %T instead", tc.wantErr, err)
-				}
-
-				if !slices.Equal(ce.Path, tc.wantErr.Path) {
-					t.Errorf("expected cycle %v, got %v instead", tc.wantErr.Path, ce.Path)
-				}
-			}
-
+			checkTopoErr(t, err, tc.wantErr)
 			if !slices.Equal(order, tc.wantOrder) {
 				t.Errorf("expected order %v, got %v instead", tc.wantOrder, order)
 			}

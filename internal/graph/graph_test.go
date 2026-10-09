@@ -9,7 +9,7 @@ import (
 	"github.com/inflame-ue/gocar/internal/task"
 )
 
-func checkWantErr(t *testing.T, got error, want *MissingDepError) {
+func checkBuildErr(t *testing.T, got error, want *MissingDepError) {
 	t.Helper()
 
 	if got == nil && want == nil {
@@ -174,7 +174,7 @@ func TestBuild(t *testing.T) {
 
 			got, err := Build(tc.spec)
 
-			checkWantErr(t, err, tc.wantErr)
+			checkBuildErr(t, err, tc.wantErr)
 
 			if got == nil || tc.want == nil {
 				return
