@@ -183,7 +183,7 @@ func TestKahn(t *testing.T) {
 			t.Parallel()
 
 			order, err := tc.graph.Kahn()
-			
+
 			checkTopoErr(t, err, tc.wantErr)
 			if !slices.Equal(order, tc.wantOrder) {
 				t.Errorf("expected order %v, got %v instead", tc.wantOrder, order)
