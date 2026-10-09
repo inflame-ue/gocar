@@ -32,6 +32,20 @@ func TestRunIntegration(t *testing.T) {
 			wantContent: "alphabeta",
 			wantErr:     nil,
 		},
+		"failling task": {
+			spec: map[string]task.Task{
+				"alpha": task.Task{
+					Cmd: "printf 'alpha' >> a.txt",
+				},
+				"beta": task.Task{
+					Cmd: "cat b.txt",
+				},
+			},
+			order: []string{"alpha", "beta"},
+			wantErr: &TaskError{
+				Task: "beta",
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -54,13 +68,15 @@ func TestRunIntegration(t *testing.T) {
 					var te *TaskError
 
 					if ok := errors.As(err, &te); !ok {
-						t.Errorf("expected error type %T, got %T instead", tc.wantErr, err)
+						t.Fatalf("expected error type %T, got %T instead", tc.wantErr, err)
 					}
 
 					if te.Task != tc.wantErr.Task {
 						t.Errorf("expected to fail on task %s, failed on %s instead", tc.wantErr.Task, te.Task)
 					}
 				}
+
+				return
 			}
 
 			data, err := os.ReadFile(filepath.Join(dir, tc.outputFile))
