@@ -11,3 +11,7 @@ func writeField(h hash.Hash, b []byte) {
 	h.Write(n[:])
 	h.Write(b)
 }
+
+func contentHash(filename string) ([]byte, error) {
+	return nil, nil
+}
