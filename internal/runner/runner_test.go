@@ -15,7 +15,7 @@ type testCommander struct {
 	failOn string
 }
 
-func (tc *testCommander) run(ctx context.Context, cmd string, stdout, stderr io.Writer) error {
+func (tc *testCommander) run(ctx context.Context, cmd, dir string, stdout, stderr io.Writer) error {
 	if tc.failOn == cmd {
 		return errors.New("faulty command")
 	}
