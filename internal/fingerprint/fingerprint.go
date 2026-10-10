@@ -48,7 +48,7 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 
 		inputs := slices.Clone(t.Inputs)
 		slices.Sort(inputs)
-		for _, path := range inputs {
+		for _, path := range slices.Compact(inputs) {
 			normalized, err := normalizePath(fp.Dir, path)
 			if err != nil {
 				return nil, &InputError{
