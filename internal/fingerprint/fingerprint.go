@@ -11,7 +11,9 @@ import (
 )
 
 func normalizePath(dir, path string) (string, error) {
-	rel, err := filepath.Rel(dir, path)
+	joined := filepath.Join(dir, filepath.FromSlash(path))
+
+	rel, err := filepath.Rel(dir, joined)
 	if err != nil {
 		return "", err
 	}
@@ -36,8 +38,11 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 
 		t, ok := spec[name]
 		if !ok {
-			// placeholder for now
-			return nil, errors.New("task name no in spec")
+			return nil, &InputError{
+				Task:  name,
+				Path:  "",
+				Cause: errors.New("task not in spec"),
+			}
 		}
 		writeField(h, []byte(t.Cmd))
 
@@ -46,7 +51,11 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 		for _, path := range inputs {
 			normalized, err := normalizePath(fp.Dir, path)
 			if err != nil {
-				return nil, errors.New("failed to normalize path")
+				return nil, &InputError{
+					Task:  name,
+					Path:  path,
+					Cause: err,
+				}
 			}
 			writeField(h, []byte(normalized))
 
@@ -57,7 +66,11 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 
 			fileHash, err := hashFile(fp.Dir, normalized)
 			if err != nil {
-				return nil, errors.New("failed to hash file content")
+				return nil, &InputError{
+					Task:  name,
+					Path:  path,
+					Cause: err,
+				}
 			}
 			fileHashes[normalized] = fileHash
 			writeField(h, fileHash)
