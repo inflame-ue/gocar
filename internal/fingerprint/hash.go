@@ -3,6 +3,7 @@ package fingerprint
 import (
 	"encoding/binary"
 	"hash"
+	"path/filepath"
 )
 
 func writeField(h hash.Hash, b []byte) {
@@ -12,6 +13,8 @@ func writeField(h hash.Hash, b []byte) {
 	h.Write(b)
 }
 
-func contentHash(filename string) ([]byte, error) {
-	return nil, nil
+func hashContent(dir, filename string) ([]byte, error) {
+	path := filepath.Join(dir, filepath.FromSlash(filename))
+
+	
 }
