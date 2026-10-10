@@ -11,9 +11,13 @@ import (
 )
 
 func normalizePath(dir, path string) (string, error) {
-	joined := filepath.Join(dir, filepath.FromSlash(path))
+	p := filepath.FromSlash(path)
 
-	rel, err := filepath.Rel(dir, joined)
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(dir, p)
+	}
+
+	rel, err := filepath.Rel(dir, p)
 	if err != nil {
 		return "", err
 	}

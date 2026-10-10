@@ -2,7 +2,11 @@ package fingerprint
 
 import (
 	"errors"
+	"maps"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/inflame-ue/gocar/internal/task"
 )
@@ -14,8 +18,12 @@ func checkInputErr(t *testing.T, got error, wantErr *InputError) {
 		t.Fatal("expected an err, got no err instead")
 	}
 
-	if got == nil && wantErr != nil {
+	if got != nil && wantErr == nil {
 		t.Fatalf("expected no err, got %v instead", got)
+	}
+
+	if got == nil && wantErr == nil {
+		return
 	}
 
 	var ie *InputError
@@ -33,23 +41,40 @@ func checkInputErr(t *testing.T, got error, wantErr *InputError) {
 	}
 }
 
-func TestKeys(t *testing.T) {
-	tests := map[string]struct {
-		spec    map[string]task.Task
-		order   []string
-		fp      *Fingerprinter
-		wantErr *InputError
-	}{}
+func mustKeys(t *testing.T, dir string, spec map[string]task.Task, order []string) map[string]string {
+	t.Helper()
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+	fp := NewFingerprinter(dir)
+	keys, err := fp.Keys(spec, order)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-			keys, err := tc.fp.Keys(tc.spec, tc.order)
+	return keys
+}
 
-			checkInputErr(t, err, tc.wantErr)
+func TestKeysMTime(t *testing.T) {
+	testDir := t.TempDir()
 
-			
-		})
+	file, err := os.Create(filepath.Join(testDir, "main.go"))
+	if err != nil {
+		t.Fatalf("file creation failed: %v", err)
+	}
+	defer file.Close()
+
+	spec := map[string]task.Task{
+		"build": {
+			Cmd: "go build .",
+			Inputs: []string{file.Name()},
+		},
+	}
+	order := []string{"build"}
+	
+	oldKeys := mustKeys(t, testDir, spec, order)
+	os.Chtimes(file.Name(), time.Time{}, time.Now())
+	newKeys := mustKeys(t, testDir, spec,  order)
+
+	if !maps.Equal(oldKeys, newKeys) {
+		t.Error("hash for build should remain unchanged regardless of modification time")
 	}
 }
