@@ -78,3 +78,37 @@ func TestKeysMTime(t *testing.T) {
 		t.Error("hash for build should remain unchanged regardless of modification time")
 	}
 }
+
+func TestKeysFileContent(t *testing.T) {
+	testDir := t.TempDir()
+
+	file, err := os.Create(filepath.Join(testDir, "main.go"))
+	if err != nil {
+		t.Fatalf("file creation failed: %v", err)
+	}
+	defer file.Close()
+
+	_, err = file.Write([]byte("package main\n"))
+	if err != nil {
+		t.Fatalf("file write failed: %v", err)
+	}
+
+	spec := map[string]task.Task{
+		"build": {
+			Cmd: "go build .",
+			Inputs: []string{file.Name()},
+		},
+	}
+	order := []string{"build"}
+	
+	oldKeys := mustKeys(t, testDir, spec, order)
+	_, err = file.Write([]byte("import \"testing\"\n"))
+	if err != nil {
+		t.Fatalf("file write failed: %v", err)
+	}
+	newKeys := mustKeys(t, testDir, spec,  order)
+
+	if maps.Equal(oldKeys, newKeys) {
+		t.Error("hash for build did not change, it should because the content of the input file changed")
+	}
+}
