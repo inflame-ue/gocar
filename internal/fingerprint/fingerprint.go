@@ -38,11 +38,7 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 
 		t, ok := spec[name]
 		if !ok {
-			return nil, &InputError{
-				Task:  name,
-				Path:  "",
-				Cause: errors.New("task not in spec"),
-			}
+			return nil, errors.New("task not in spec")
 		}
 		writeField(h, []byte(t.Cmd))
 
