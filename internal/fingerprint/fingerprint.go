@@ -23,6 +23,10 @@ type Fingerprinter struct {
 	Dir string
 }
 
+func NewFingerprinter(dir string) *Fingerprinter {
+	return &Fingerprinter{Dir: dir}
+}
+
 func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[string]string, error) {
 	digests := make(map[string][]byte, len(order))
 	fileHashes := make(map[string][]byte)
@@ -35,10 +39,11 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 			// placeholder for now
 			return nil, errors.New("task name no in spec")
 		}
-
 		writeField(h, []byte(t.Cmd))
 
-		for _, path := range t.Inputs {
+		inputs := slices.Clone(t.Inputs)
+		slices.Sort(inputs)
+		for _, path := range inputs {
 			normalized, err := normalizePath(fp.Dir, path)
 			if err != nil {
 				return nil, errors.New("failed to normalize path")

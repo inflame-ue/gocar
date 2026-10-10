@@ -26,6 +26,11 @@ func hashFile(dir, filename string) ([]byte, error) {
 	defer file.Close()
 
 	fileHash := sha256.New()
-	io.Copy(fileHash, file)
+
+	_, err = io.Copy(fileHash, file)
+	if err != nil {
+		return nil, err
+	}
+
 	return fileHash.Sum(nil), nil
 }
