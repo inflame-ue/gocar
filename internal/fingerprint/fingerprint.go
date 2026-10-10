@@ -25,6 +25,7 @@ type Fingerprinter struct {
 
 func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[string]string, error) {
 	digests := make(map[string][]byte, len(order))
+	fileHashes := make(map[string][]byte)
 
 	for _, name := range order {
 		h := sha256.New()
@@ -44,10 +45,16 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 			}
 			writeField(h, []byte(normalized))
 
-			fileHash, err := hashContent(fp.Dir, normalized)
+			if fileHash, ok := fileHashes[normalized]; ok {
+				writeField(h, fileHash)
+				continue
+			}
+
+			fileHash, err := hashFile(fp.Dir, normalized)
 			if err != nil {
 				return nil, errors.New("failed to hash file content")
 			}
+			fileHashes[normalized] = fileHash
 			writeField(h, fileHash)
 		}
 
