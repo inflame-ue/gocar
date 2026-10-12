@@ -239,12 +239,12 @@ func TestKeysIdenticalFileContent(t *testing.T) {
 			Cmd:    "go build main.go",
 			Inputs: []string{file.Name()},
 		},
-		"run": {
-			Cmd:    "go run other.go",
+		"otherBuild": {
+			Cmd:    "go build other.go",
 			Inputs: []string{otherFile.Name()},
 		},
 	}
-	order := []string{"build", "run"}
+	order := []string{"build", "otherBuild"}
 
 	keys := getKeys(t, testDir, spec, order)
 
