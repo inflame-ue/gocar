@@ -41,7 +41,7 @@ func checkInputErr(t *testing.T, got error, wantErr *InputError) {
 	}
 }
 
-func mustKeys(t *testing.T, dir string, spec map[string]task.Task, order []string) map[string]string {
+func getKeys(t *testing.T, dir string, spec map[string]task.Task, order []string) map[string]string {
 	t.Helper()
 
 	fp := NewFingerprinter(dir)
@@ -64,15 +64,15 @@ func TestKeysMTime(t *testing.T) {
 
 	spec := map[string]task.Task{
 		"build": {
-			Cmd: "go build .",
+			Cmd:    "go build .",
 			Inputs: []string{file.Name()},
 		},
 	}
 	order := []string{"build"}
-	
-	oldKeys := mustKeys(t, testDir, spec, order)
+
+	oldKeys := getKeys(t, testDir, spec, order)
 	os.Chtimes(file.Name(), time.Time{}, time.Now())
-	newKeys := mustKeys(t, testDir, spec,  order)
+	newKeys := getKeys(t, testDir, spec, order)
 
 	if !maps.Equal(oldKeys, newKeys) {
 		t.Error("hash for build should remain unchanged regardless of modification time")
@@ -95,20 +95,92 @@ func TestKeysFileContent(t *testing.T) {
 
 	spec := map[string]task.Task{
 		"build": {
-			Cmd: "go build .",
+			Cmd:    "go build .",
 			Inputs: []string{file.Name()},
 		},
 	}
 	order := []string{"build"}
-	
-	oldKeys := mustKeys(t, testDir, spec, order)
+
+	oldKeys := getKeys(t, testDir, spec, order)
 	_, err = file.Write([]byte("import \"testing\"\n"))
 	if err != nil {
 		t.Fatalf("file write failed: %v", err)
 	}
-	newKeys := mustKeys(t, testDir, spec,  order)
+	newKeys := getKeys(t, testDir, spec, order)
 
 	if maps.Equal(oldKeys, newKeys) {
 		t.Error("hash for build did not change, it should because the content of the input file changed")
+	}
+}
+
+func TestKeysMerkleCascade(t *testing.T) {
+	testDir := t.TempDir()
+
+	file, err := os.Create(filepath.Join(testDir, "main.go"))
+	if err != nil {
+		t.Fatalf("file creation failed: %v", err)
+	}
+	defer file.Close()
+
+	_, err = file.Write([]byte("package main\n"))
+	if err != nil {
+		t.Fatalf("file write failed: %v", err)
+	}
+
+	spec := map[string]task.Task{
+		"fmt": {
+			Cmd:    "go fmt main.go",
+			Inputs: []string{file.Name()},
+		},
+		"vet": {
+			Cmd:  "go vet .",
+			Deps: []string{"fmt"},
+		},
+		"build": {
+			Cmd:  "go build .",
+			Deps: []string{"fmt", "vet"},
+		},
+		"lint": {
+			Cmd: "golangci lint",
+		},
+	}
+	order := []string{"lint", "fmt", "vet", "build"}
+
+	oldKeys := getKeys(t, testDir, spec, order)
+	_, err = file.Write([]byte("import \"testing\"\n"))
+	if err != nil {
+		t.Fatalf("file write failed: %v", err)
+	}
+	newKeys := getKeys(t, testDir, spec, order)
+
+	if oldKeys["vet"] == newKeys["vet"] || oldKeys["build"] == newKeys["build"] {
+		t.Error("per merkle cascade, change in a dependency should have changed the dependants")
+	}
+
+	if oldKeys["lint"] != newKeys["lint"] {
+		t.Error("the task unrelated to the merkle chain should remain untouched")
+	}
+}
+
+func TestKeysCmdChange(t *testing.T) {
+	testDir := t.TempDir()
+
+	spec := map[string]task.Task{
+		"build": {
+			Cmd:    "go build .",
+		},
+	}
+	order := []string{"build"}
+
+	oldKeys := getKeys(t, testDir, spec, order)
+	changedSpec := map[string]task.Task{
+		"build": {
+			Cmd:    "go build main.go",
+		},
+	}
+	newKeys := getKeys(t, testDir, changedSpec, order)
+
+	if maps.Equal(oldKeys, newKeys) {
+		t.Error("hash for build should change when the command changes")
 	}
 }
