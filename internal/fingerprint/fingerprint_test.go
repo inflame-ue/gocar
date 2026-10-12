@@ -62,6 +62,11 @@ func TestKeysMTime(t *testing.T) {
 	}
 	defer file.Close()
 
+	_, err = file.Write([]byte("package main\n"))
+	if err != nil {
+		t.Fatalf("file write failed: %v", err)
+	}
+
 	spec := map[string]task.Task{
 		"build": {
 			Cmd:    "go build .",
@@ -167,7 +172,7 @@ func TestKeysCmdChange(t *testing.T) {
 
 	spec := map[string]task.Task{
 		"build": {
-			Cmd:    "go build .",
+			Cmd: "go build .",
 		},
 	}
 	order := []string{"build"}
@@ -175,12 +180,75 @@ func TestKeysCmdChange(t *testing.T) {
 	oldKeys := getKeys(t, testDir, spec, order)
 	changedSpec := map[string]task.Task{
 		"build": {
-			Cmd:    "go build main.go",
+			Cmd: "go build main.go",
 		},
 	}
 	newKeys := getKeys(t, testDir, changedSpec, order)
 
 	if maps.Equal(oldKeys, newKeys) {
 		t.Error("hash for build should change when the command changes")
+	}
+}
+
+func TestKeysMissingFile(t *testing.T) {
+	testDir := t.TempDir()
+
+	spec := map[string]task.Task{
+		"build": {
+			Cmd:    "go build main.go",
+			Inputs: []string{filepath.Join(testDir, "main.go")},
+		},
+	}
+	order := []string{"build"}
+	wantErr := &InputError{
+		Task: "build",
+		Path: spec["build"].Inputs[0],
+	}
+
+	_, err := NewFingerprinter(testDir).Keys(spec, order)
+	checkInputErr(t, err, wantErr)
+}
+
+func TestKeysIdenticalFileContent(t *testing.T) {
+	testDir := t.TempDir()
+
+	file, err := os.Create(filepath.Join(testDir, "main.go"))
+	if err != nil {
+		t.Fatalf("file creation failed: %v", err)
+	}
+	defer file.Close()
+
+	_, err = file.Write([]byte("package main\n"))
+	if err != nil {
+		t.Fatalf("file write failed: %v", err)
+	}
+
+	otherFile, err := os.Create(filepath.Join(testDir, "other.go"))
+	if err != nil {
+		t.Fatalf("file creation failed: %v", err)
+	}
+	defer file.Close()
+
+	_, err = otherFile.Write([]byte("package main\n"))
+	if err != nil {
+		t.Fatalf("file write failed: %v", err)
+	}
+
+	spec := map[string]task.Task{
+		"build": {
+			Cmd:    "go build main.go",
+			Inputs: []string{file.Name()},
+		},
+		"run": {
+			Cmd:    "go run other.go",
+			Inputs: []string{otherFile.Name()},
+		},
+	}
+	order := []string{"build", "run"}
+
+	keys := getKeys(t, testDir, spec, order)
+
+	if keys["build"] == keys["run"] {
+		t.Error("hash for build and run should not be the same, since it should depend on filepath as well as one content")
 	}
 }
