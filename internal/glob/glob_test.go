@@ -23,7 +23,7 @@ func checkPatternErr(t *testing.T, got error, want *PatternError) {
 
 	var pe *PatternError
 	if !errors.As(got, &pe) {
-		t.Errorf("expected err type %T, got %T instead", want, got)
+		t.Fatalf("expected err type %T, got %T instead", want, got)
 	}
 
 	if pe.Pattern != want.Pattern {
