@@ -14,6 +14,20 @@ func match(pattern, path []string) (bool, error) {
 		return len(path) == 0, nil
 	}
 
+	// This is the naive recursion version.
+	// Expect it to blow up for bigger enough inputs.
+	if pattern[0] == "**" {
+		if ok, err := match(pattern[1:], path); err != nil || ok {
+			return ok,  err
+		}
+
+		if len(path) > 0 {
+			return match(pattern, path[1:]) 
+		}
+
+		return false, nil
+	}
+
 	if len(path) == 0 {
 		return false, nil
 	}

@@ -1,7 +1,7 @@
 package glob
 
 import "testing"
-
+ 
 func TestMatch(t *testing.T) {
 	tests := map[string]struct {
 		pattern, path []string
@@ -30,6 +30,13 @@ func TestMatch(t *testing.T) {
 		"double star": {
 			pattern: []string{"src", "**", "main.go"},
 			path: []string{"src", "cmd", "cli", "main.go"},
+			wantMatch: true,
+		},
+		"double star blow up": {
+			pattern: []string{"**", "**", "**", "**", "**", "**", "**", "**", "**",
+			"**", "**", "**", "**", "**", "**", "main.go"},
+			path: []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "1", 
+			"2", "3", "4", "5", "6", "main.py"},
 			wantMatch: true,
 		},
 	}
