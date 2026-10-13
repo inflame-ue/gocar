@@ -1,7 +1,7 @@
 package glob
 
 import "testing"
- 
+
 func TestMatch(t *testing.T) {
 	tests := map[string]struct {
 		pattern, path []string
@@ -45,7 +45,7 @@ func TestMatch(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			ok, err := match(tc.pattern, tc.path)
+			ok, err := naiveMatch(tc.pattern, tc.path)
 
 			if err != nil {
 				t.Fatalf("match failed: %v", err)
