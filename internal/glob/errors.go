@@ -15,5 +15,5 @@ type PatternError struct {
 }
 
 func (pe *PatternError) Error() string {
-	return fmt.Sprintf("malformed pattern %s: %s",  pe.Pattern, pe.Msg)
+	return fmt.Sprintf("malformed pattern %s: %s", pe.Pattern, pe.Msg)
 }
