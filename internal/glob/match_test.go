@@ -28,16 +28,16 @@ func TestMatch(t *testing.T) {
 			wantMatch: false,
 		},
 		"double star": {
-			pattern: []string{"src", "**", "main.go"},
-			path: []string{"src", "cmd", "cli", "main.go"},
+			pattern:   []string{"src", "**", "main.go"},
+			path:      []string{"src", "cmd", "cli", "main.go"},
 			wantMatch: true,
 		},
 		"double star blow up": {
 			pattern: []string{"**", "**", "**", "**", "**", "**", "**", "**", "**",
-			"**", "**", "**", "**", "**", "**", "main.go"},
-			path: []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "1", 
-			"2", "3", "4", "5", "6", "main.py"},
-			wantMatch: true,
+				"**", "**", "**", "**", "**", "**", "main.go"},
+			path: []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "1",
+				"2", "3", "4", "5", "6", "main.py"},
+			wantMatch: false,
 		},
 	}
 
@@ -45,7 +45,7 @@ func TestMatch(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			ok, err := naiveMatch(tc.pattern, tc.path)
+			ok, err := match(tc.pattern, tc.path)
 
 			if err != nil {
 				t.Fatalf("match failed: %v", err)
