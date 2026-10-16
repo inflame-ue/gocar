@@ -2,6 +2,19 @@ package glob
 
 import "path/filepath"
 
+const (
+	unknown int8 = 0
+	success int8 = 1
+	fail    int8 = -1
+)
+
+func clasiffyMatch(result bool) int8 {
+	if !result {
+		return fail
+	}
+	return success
+}
+
 type matcher struct {
 	pattern, path []string
 	memo          [][]int8
@@ -9,39 +22,50 @@ type matcher struct {
 
 func (m *matcher) recurse(pi, qi int) (bool, error) {
 	if pi == len(m.pattern) {
-		return qi == len(m.path), nil
+		match := qi == len(m.path)
+		m.memo[pi][qi] = clasiffyMatch(match)
+		return match, nil
 	}
 
+	// if success, then no need to go through recursion branches
 	if m.memo[pi][qi] != 0 {
 		return m.memo[pi][qi] == 1, nil
 	}
 
 	if m.pattern[pi] == "**" {
-		if ok, err := m.recurse(pi+1, qi); err != nil || ok {
-			return ok, err
+		if match, err := m.recurse(pi+1, qi); err != nil || match {
+			m.memo[pi+1][qi] = clasiffyMatch(match)
+			return match, err
 		}
 
 		if qi < len(m.path) {
-			return m.recurse(pi, qi+1)
+			match, err := m.recurse(pi, qi+1)
+			m.memo[pi][qi + 1] = clasiffyMatch(match)
+			return match, err
 		}
 
 		return false, nil
 	}
 
 	if qi == len(m.path) {
+		m.memo[pi][qi] = fail
 		return false, nil
 	}
 
 	segMatched, err := segMatch(m.pattern[pi], m.path[qi])
 	if err != nil {
+		m.memo[pi][qi] = fail
 		return false, err
 	}
 
 	matched, err := m.recurse(pi+1, qi+1)
 	if err != nil {
+		m.memo[pi][qi] = fail
 		return false, err
 	}
 
+	match := segMatched && matched
+	m.memo[pi][qi] = clasiffyMatch(match)
 	return segMatched && matched, nil
 }
 
