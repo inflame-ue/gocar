@@ -1,11 +1,15 @@
 package glob
 
 import (
+	"io/fs"
 	"path/filepath"
 	"strings"
 )
 
 func Expand(dir, pattern string) ([]string, error) {
+	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		return nil		
+	})
 	return nil, nil
 }
 

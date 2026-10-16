@@ -8,6 +8,13 @@ const (
 	fail    int8 = -1
 )
 
+type matcher struct {
+	pattern, path []string
+	memo          [][]int8
+}
+
+// classifyMatch is a helper that maps
+// true/false -> success/fail respectively.
 func clasiffyMatch(result bool) int8 {
 	if !result {
 		return fail
@@ -15,9 +22,12 @@ func clasiffyMatch(result bool) int8 {
 	return success
 }
 
-type matcher struct {
-	pattern, path []string
-	memo          [][]int8
+// segMatch is a wrapper of filepath.Match that matches a single segment.
+func segMatch(pattern, seg string) (bool, error) {
+	// I don't like the fact that filepath.Match forces the error
+	// return here. Could be resolved by writing from scratch, but
+	// no complexity/information would be gained from that.
+	return filepath.Match(pattern, seg)
 }
 
 func (m *matcher) recurse(pi, qi int) (bool, error) {
@@ -28,7 +38,7 @@ func (m *matcher) recurse(pi, qi int) (bool, error) {
 	}
 
 	// if success, then no need to go through recursion branches
-	if m.memo[pi][qi] != 0 {
+	if m.memo[pi][qi] != unknown {
 		return m.memo[pi][qi] == 1, nil
 	}
 
@@ -121,10 +131,4 @@ func naiveMatch(pattern, path []string) (bool, error) {
 	return segMatched && matched, nil
 }
 
-// segMatch is a wrapper of filepath.Match that matches a single segment.
-func segMatch(pattern, seg string) (bool, error) {
-	// I don't like the fact that filepath.Match forces the error
-	// return here. Could be resolved by writing from scratch, but
-	// no complexity/information would be gained from that.
-	return filepath.Match(pattern, seg)
-}
+
