@@ -2,6 +2,7 @@ package glob
 
 import (
 	"io/fs"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -12,7 +13,27 @@ func Expand(dir, pattern string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	
+	if !strings.ContainsAny(pattern, "*?[") {
+		file := filepath.Join(dir, filepath.FromSlash(pattern))
 
+		fileInfo, err := os.Stat(file)
+		if err != nil {
+			return nil, &NoMatchError{
+				Pattern: pattern,
+			}
+		}
+
+		if !fileInfo.Mode().IsRegular() {
+			return nil, &NoMatchError{
+				Pattern: pattern,
+			}
+		}
+
+		file = filepath.ToSlash(filepath.Clean(file))
+		return []string{file}, nil 
+	}
+	
 	hits := []string{}
 	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
