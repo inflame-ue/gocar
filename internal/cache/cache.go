@@ -9,4 +9,3 @@ func NewL1(root string) *L1 {
 		root: root,
 	}
 }
-
