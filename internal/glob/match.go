@@ -44,11 +44,13 @@ func (m *matcher) recurse(pi, qi int) (bool, error) {
 
 	if m.pattern[pi] == "**" {
 		if match, err := m.recurse(pi+1, qi); err != nil || match {
+			m.memo[pi+1][qi] = clasifyMatch(match)
 			return match, err
 		}
 
 		if qi < len(m.path) {
 			match, err := m.recurse(pi, qi+1)
+			m.memo[pi][qi + 1] = clasifyMatch(match)
 			return match, err
 		}
 
