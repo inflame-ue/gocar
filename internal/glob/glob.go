@@ -30,7 +30,7 @@ func Expand(dir, pattern string) ([]string, error) {
 			}
 		}
 
-		file = filepath.ToSlash(filepath.Clean(file))
+		file = filepath.ToSlash(filepath.Clean(pattern))
 		return []string{file}, nil 
 	}
 	

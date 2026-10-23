@@ -2,6 +2,8 @@ package glob
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 )
@@ -29,6 +31,36 @@ func checkPatternErr(t *testing.T, got error, want *PatternError) {
 	if pe.Pattern != want.Pattern {
 		t.Errorf("expected pattern %s, got %s instead", want.Pattern, pe.Pattern)
 	}
+}
+
+func checkNoMatchErr(t *testing.T, got error, want *NoMatchError) {
+	var nme *NoMatchError
+	if !errors.As(got, &nme) {
+		t.Fatalf("expected err type %T, got %T instead", want, got)
+	}
+
+	if nme.Pattern != want.Pattern {
+		t.Errorf("expected pattern %s, got %s instead", want.Pattern, nme.Pattern)
+	}
+}
+
+func makeTree(t *testing.T) {
+	dir := t.TempDir()
+	files := []string{"main.go", "src/main.go", "src/pkg/util.go",
+		"src/pkg/util_test.go", "src/cmd/cli/main.go", "main.rs"}
+
+	for _, file := range files {
+		path := filepath.Join(dir, file)
+
+		_, err := os.Create(path)
+		if err != nil {
+			t.Fatalf("could not create file %s: %v", file, err)
+		}
+	}
+}
+
+func TestExpand(t *testing.T) {
+
 }
 
 func TestSplitSegments(t *testing.T) {
