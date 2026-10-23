@@ -129,5 +129,3 @@ func naiveMatch(pattern, path []string) (bool, error) {
 
 	return segMatched && matched, nil
 }
-
-

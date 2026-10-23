@@ -6,9 +6,9 @@ var sink bool
 
 func BenchmarkMatch(b *testing.B) {
 	pattern := []string{"**", "**", "**", "**", "**", "**", "**", "**", "**",
-				"**", "**", "**", "**", "**", "**", "main.go"}
+		"**", "**", "**", "**", "**", "**", "main.go"}
 	path := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "1",
-				"2", "3", "4", "5", "6", "main.py"}
+		"2", "3", "4", "5", "6", "main.py"}
 
 	b.Run("memoized", func(b *testing.B) {
 		b.ReportAllocs()

@@ -3,14 +3,62 @@ package glob
 import (
 	"io/fs"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
 func Expand(dir, pattern string) ([]string, error) {
-	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		return nil		
+	segments, err := splitSegments(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	hits := []string{}
+	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		if rel == "." {
+			return nil
+		}
+		rel = filepath.ToSlash(rel)
+
+		if d.IsDir() {
+			return nil
+		}
+
+		ok, err := match(segments, strings.Split(rel, "/"))
+		if err != nil {
+			return &PatternError{
+				Pattern: pattern, 
+				Msg: err.Error(),
+			}
+		}
+
+		if ok {
+			hits = append(hits, rel)
+		}
+
+		return nil
 	})
-	return nil, nil
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(hits) == 0 {
+		return nil, &NoMatchError{
+			Pattern: pattern,
+		}
+	}
+
+	slices.Sort(hits)
+	return hits, nil
 }
 
 func splitSegments(pattern string) ([]string, error) {
