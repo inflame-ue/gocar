@@ -15,7 +15,7 @@ type matcher struct {
 
 // classifyMatch is a helper that maps
 // true/false -> success/fail respectively.
-func clasiffyMatch(result bool) int8 {
+func clasifyMatch(result bool) int8 {
 	if !result {
 		return fail
 	}
@@ -33,27 +33,26 @@ func segMatch(pattern, seg string) (bool, error) {
 func (m *matcher) recurse(pi, qi int) (bool, error) {
 	if pi == len(m.pattern) {
 		match := qi == len(m.path)
-		m.memo[pi][qi] = clasiffyMatch(match)
+		m.memo[pi][qi] = clasifyMatch(match)
 		return match, nil
 	}
 
 	// if success, then no need to go through recursion branches
 	if m.memo[pi][qi] != unknown {
-		return m.memo[pi][qi] == 1, nil
+		return m.memo[pi][qi] == success, nil
 	}
 
 	if m.pattern[pi] == "**" {
 		if match, err := m.recurse(pi+1, qi); err != nil || match {
-			m.memo[pi+1][qi] = clasiffyMatch(match)
 			return match, err
 		}
 
 		if qi < len(m.path) {
 			match, err := m.recurse(pi, qi+1)
-			m.memo[pi][qi+1] = clasiffyMatch(match)
 			return match, err
 		}
 
+		m.memo[pi][qi] = fail
 		return false, nil
 	}
 
@@ -75,7 +74,7 @@ func (m *matcher) recurse(pi, qi int) (bool, error) {
 	}
 
 	match := segMatched && matched
-	m.memo[pi][qi] = clasiffyMatch(match)
+	m.memo[pi][qi] = clasifyMatch(match)
 	return segMatched && matched, nil
 }
 
