@@ -274,7 +274,7 @@ func TestKeysIdenticalFileContent(t *testing.T) {
 
 func TestKeysNewFile(t *testing.T) {
 	testDir := makeTree(t)
-	
+
 	spec := map[string]task.Task{
 		"build": {
 			Cmd:    "go build .",
@@ -293,7 +293,7 @@ func TestKeysNewFile(t *testing.T) {
 	if !maps.Equal(oldKeys, newKeys) {
 		t.Error("hash for build should not change after a file that is not matched by glob expansion is introduced into the cwd")
 	}
-	
+
 	file, err = os.Create(filepath.Join(testDir, "src/additional.go"))
 	if err != nil {
 		t.Fatalf("could not create file \"src/additional.go\": %v", err)

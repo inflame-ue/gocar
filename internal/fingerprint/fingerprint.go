@@ -36,14 +36,14 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 			matches, err := glob.Expand(fp.Dir, pattern)
 			if err != nil {
 				return nil, &InputError{
-					Task: name, 
-					Path: pattern,
+					Task:  name,
+					Path:  pattern,
 					Cause: err,
 				}
 			}
 			inputs = append(inputs, matches...)
 		}
-		
+
 		slices.Sort(inputs)
 		for _, path := range slices.Compact(inputs) {
 			writeField(h, []byte(path))

@@ -13,7 +13,7 @@ func Expand(dir, pattern string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if !strings.ContainsAny(pattern, "*?[") {
 		file := filepath.Join(dir, filepath.FromSlash(pattern))
 
@@ -31,9 +31,9 @@ func Expand(dir, pattern string) ([]string, error) {
 		}
 
 		file = filepath.ToSlash(filepath.Clean(pattern))
-		return []string{file}, nil 
+		return []string{file}, nil
 	}
-	
+
 	hits := []string{}
 	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -56,8 +56,8 @@ func Expand(dir, pattern string) ([]string, error) {
 		ok, err := match(segments, strings.Split(rel, "/"))
 		if err != nil {
 			return &PatternError{
-				Pattern: pattern, 
-				Msg: err.Error(),
+				Pattern: pattern,
+				Msg:     err.Error(),
 			}
 		}
 
