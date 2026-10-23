@@ -248,7 +248,48 @@ func TestKeysIdenticalFileContent(t *testing.T) {
 
 	keys := getKeys(t, testDir, spec, order)
 
-	if keys["build"] == keys["run"] {
+	if keys["build"] == keys["otherBuild"] {
 		t.Error("hash for build and run should not be the same, since it should depend on filepath as well as one content")
+	}
+}
+
+func TestKeysNewFile(t *testing.T) {
+	testDir := t.TempDir()
+	files := []string{"main.go", "src/main.go", "src/pkg/util.go",
+		"src/pkg/util_test.go", "src/cmd/cli/main.go"}
+
+	for _, filename := range files {
+		path := filepath.Join(testDir, filename)
+
+		err := os.MkdirAll(filepath.Dir(path), 0o755)
+		if err != nil {
+			t.Fatalf("failed to mkdir: %v", err)
+		}
+
+		file, err := os.Create(path)
+		if err != nil {
+			t.Fatalf("could not create file %s: %v", filename, err)
+		}
+		file.Close()
+	}
+	
+	spec := map[string]task.Task{
+		"build": {
+			Cmd:    "go build .",
+			Inputs: []string{"src/**/*.go"},
+		},
+	}
+	order := []string{"build"}
+
+	oldKeys := getKeys(t, testDir, spec, order)
+	file, err := os.Create(filepath.Join(testDir, "src/additional.go"))
+	if err != nil {
+		t.Fatalf("could not create file \"src/additional.go\": %v", err)
+	}
+	file.Close()
+	newKeys := getKeys(t, testDir, spec, order)
+
+	if maps.Equal(oldKeys, newKeys) {
+		t.Error("hash for build should chain after a new file is added to the directory under glob expansion")
 	}
 }

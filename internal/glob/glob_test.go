@@ -18,12 +18,12 @@ func checkErr(t *testing.T, got, want error) {
 func makeTree(t *testing.T) string {
 	t.Helper()
 
-	dir := t.TempDir()
+	testDir := t.TempDir()
 	files := []string{"main.go", "src/main.go", "src/pkg/util.go",
 		"src/pkg/util_test.go", "src/cmd/cli/main.go"}
 
 	for _, filename := range files {
-		path := filepath.Join(dir, filename)
+		path := filepath.Join(testDir, filename)
 
 		err := os.MkdirAll(filepath.Dir(path), 0o755)
 		if err != nil {
@@ -37,7 +37,7 @@ func makeTree(t *testing.T) string {
 		file.Close()
 	}
 
-	return dir
+	return testDir
 }
 
 func TestExpand(t *testing.T) {
