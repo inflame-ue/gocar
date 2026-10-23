@@ -103,25 +103,25 @@ func TestParse(t *testing.T) {
 		"empty": {
 			filename: "empty.yaml",
 			wantErr: &wantError{
-				is: EmptyDocumentError,
+				is: ErrEmptyDocument,
 			},
 		},
 		"whitespace-only": {
 			filename: "whitespace.yaml",
 			wantErr: &wantError{
-				is: EmptyDocumentError,
+				is: ErrEmptyDocument,
 			},
 		},
 		"comment-only": {
 			filename: "comment.yaml",
 			wantErr: &wantError{
-				is: EmptyDocumentError,
+				is: ErrEmptyDocument,
 			},
 		},
 		"empty document": {
 			filename: "emptydoc.yaml",
 			wantErr: &wantError{
-				is: EmptyDocumentError,
+				is: ErrEmptyDocument,
 			},
 		},
 		"bad document": {

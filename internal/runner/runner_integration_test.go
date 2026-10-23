@@ -19,10 +19,10 @@ func TestRunIntegration(t *testing.T) {
 	}{
 		"valid task": {
 			spec: map[string]task.Task{
-				"alpha": task.Task{
+				"alpha": {
 					Cmd: "printf 'alpha' >> a.txt",
 				},
-				"beta": task.Task{
+				"beta": {
 					Cmd: "printf 'beta' >> a.txt",
 				},
 			},
@@ -33,10 +33,10 @@ func TestRunIntegration(t *testing.T) {
 		},
 		"failling task": {
 			spec: map[string]task.Task{
-				"alpha": task.Task{
+				"alpha": {
 					Cmd: "printf 'alpha' >> a.txt",
 				},
-				"beta": task.Task{
+				"beta": {
 					Cmd: "cat b.txt",
 				},
 			},
@@ -62,7 +62,7 @@ func TestRunIntegration(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				if !(string(data) == tc.wantContent) {
+				if string(data) != tc.wantContent {
 					t.Errorf("expected output file to contain %s, got %s instead", tc.wantContent, string(data))
 				}
 			}

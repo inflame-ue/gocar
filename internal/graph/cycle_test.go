@@ -14,8 +14,8 @@ func TestCycle(t *testing.T) {
 		"valid linked list graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"build":  []string{"format"},
+					"format": {},
+					"build":  {"format"},
 				},
 			},
 			wantFound: false,
@@ -24,10 +24,10 @@ func TestCycle(t *testing.T) {
 		"valid diamond graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"lint", "vet"},
+					"format": {},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"lint", "vet"},
 				},
 			},
 			wantFound: false,
@@ -36,11 +36,11 @@ func TestCycle(t *testing.T) {
 		"tree-style branching graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"vet", "lint"},
-					"run":    []string{"lint"},
+					"format": {},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"vet", "lint"},
+					"run":    {"lint"},
 				},
 			},
 			wantFound: false,
@@ -49,8 +49,8 @@ func TestCycle(t *testing.T) {
 		"cyclic linked list graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{"format"},
+					"format": {"build"},
+					"build":  {"format"},
 				},
 			},
 			wantFound: true,
@@ -59,10 +59,10 @@ func TestCycle(t *testing.T) {
 		"cyclic diamond graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{"build"},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"lint", "vet"},
+					"format": {"build"},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"lint", "vet"},
 				},
 			},
 			wantFound: true,
@@ -71,7 +71,7 @@ func TestCycle(t *testing.T) {
 		"self-loop graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"build": []string{"build"},
+					"build": {"build"},
 				},
 			},
 			wantFound: true,
@@ -80,11 +80,11 @@ func TestCycle(t *testing.T) {
 		"disconnected component graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"build":  []string{"format"},
-					"lint":   []string{"run"},
-					"vet":    []string{"lint"},
-					"run":    []string{"vet"},
+					"format": {},
+					"build":  {"format"},
+					"lint":   {"run"},
+					"vet":    {"lint"},
+					"run":    {"vet"},
 				},
 			},
 			wantFound: true,

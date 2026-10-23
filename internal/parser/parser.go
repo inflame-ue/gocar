@@ -28,7 +28,7 @@ func parseRawTasks(data []byte) (rawTasks, error) {
 	var raw map[string]yaml.Node
 
 	if len(data) == 0 {
-		return nil, EmptyDocumentError
+		return nil, ErrEmptyDocument
 	}
 
 	r := bytes.NewReader(data)
@@ -38,7 +38,7 @@ func parseRawTasks(data []byte) (rawTasks, error) {
 
 		// no valid YAML found
 		if errors.Is(err, io.EOF) {
-			return nil, EmptyDocumentError
+			return nil, ErrEmptyDocument
 		}
 
 		return nil, &DocumentError{
@@ -48,7 +48,7 @@ func parseRawTasks(data []byte) (rawTasks, error) {
 	}
 
 	if len(raw) == 0 {
-		return nil, EmptyDocumentError
+		return nil, ErrEmptyDocument
 	}
 
 	return raw, nil

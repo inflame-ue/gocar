@@ -46,16 +46,16 @@ func TestBuild(t *testing.T) {
 	}{
 		"single node graph": {
 			spec: map[string]task.Task{
-				"build": task.Task{
+				"build": {
 					Cmd: "go build .",
 				},
 			},
 			want: &Graph{
 				deps: map[string][]string{
-					"build": []string{},
+					"build": {},
 				},
 				rdeps: map[string][]string{
-					"build": []string{},
+					"build": {},
 				},
 				indeg: map[string]int{
 					"build": 0,
@@ -65,22 +65,22 @@ func TestBuild(t *testing.T) {
 		},
 		"valid linked list graph": {
 			spec: map[string]task.Task{
-				"format": task.Task{
+				"format": {
 					Cmd: "go fmt ./...",
 				},
-				"build": task.Task{
+				"build": {
 					Cmd:  "go build ./...",
 					Deps: []string{"format"},
 				},
 			},
 			want: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"build":  []string{"format"},
+					"format": {},
+					"build":  {"format"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{},
+					"format": {"build"},
+					"build":  {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -91,34 +91,34 @@ func TestBuild(t *testing.T) {
 		},
 		"valid diamond graph": {
 			spec: map[string]task.Task{
-				"format": task.Task{
+				"format": {
 					Cmd: "go fmt ./...",
 				},
-				"vet": task.Task{
+				"vet": {
 					Cmd:  "go vet ./...",
 					Deps: []string{"format"},
 				},
-				"lint": task.Task{
+				"lint": {
 					Cmd:  "golangci-lint run",
 					Deps: []string{"format"},
 				},
-				"build": task.Task{
+				"build": {
 					Cmd:  "go build ./...",
 					Deps: []string{"vet", "lint"},
 				},
 			},
 			want: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"lint", "vet"},
+					"format": {},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"lint", "vet"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"lint", "vet"},
-					"vet":    []string{"build"},
-					"lint":   []string{"build"},
-					"build":  []string{},
+					"format": {"lint", "vet"},
+					"vet":    {"build"},
+					"lint":   {"build"},
+					"build":  {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -130,7 +130,7 @@ func TestBuild(t *testing.T) {
 		},
 		"missing dep graph": {
 			spec: map[string]task.Task{
-				"build": task.Task{
+				"build": {
 					Cmd:  "go build ./...",
 					Deps: []string{"format"},
 				},
@@ -143,22 +143,22 @@ func TestBuild(t *testing.T) {
 		},
 		"duplicate deps graph": {
 			spec: map[string]task.Task{
-				"format": task.Task{
+				"format": {
 					Cmd: "go fmt ./...",
 				},
-				"build": task.Task{
+				"build": {
 					Cmd:  "go build ./...",
 					Deps: []string{"format", "format"},
 				},
 			},
 			want: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"build":  []string{"format"},
+					"format": {},
+					"build":  {"format"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{},
+					"format": {"build"},
+					"build":  {},
 				},
 				indeg: map[string]int{
 					"format": 0,

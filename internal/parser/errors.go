@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-var EmptyDocumentError = errors.New("task specification is empty")
+var ErrEmptyDocument = errors.New("task specification is empty")
 
 // DocumentError indicates a decoding/loading problem with a particular YAML
 // configuration. Implements the ParserError interface for convenience.

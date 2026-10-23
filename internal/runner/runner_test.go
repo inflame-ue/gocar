@@ -59,13 +59,13 @@ func TestRun(t *testing.T) {
 	}{
 		"valid task": {
 			spec: map[string]task.Task{
-				"fmt": task.Task{
+				"fmt": {
 					Cmd: "go fmt .",
 				},
-				"lint": task.Task{
+				"lint": {
 					Cmd: "go lint .",
 				},
-				"run": task.Task{
+				"run": {
 					Cmd:  "go run .",
 					Deps: []string{"fmt", "lint"},
 				},
@@ -77,14 +77,14 @@ func TestRun(t *testing.T) {
 		},
 		"fast fail task": {
 			spec: map[string]task.Task{
-				"fmt": task.Task{
+				"fmt": {
 					Cmd: "go fmt .",
 				},
-				"run": task.Task{
+				"run": {
 					Cmd:  "go run .",
 					Deps: []string{"fmt"},
 				},
-				"build": task.Task{
+				"build": {
 					Cmd:  "go build .",
 					Deps: []string{"run"},
 				},
@@ -98,14 +98,14 @@ func TestRun(t *testing.T) {
 		},
 		"unknown task in order": {
 			spec: map[string]task.Task{
-				"fmt": task.Task{
+				"fmt": {
 					Cmd: "go fmt .",
 				},
-				"run": task.Task{
+				"run": {
 					Cmd:  "go run .",
 					Deps: []string{"fmt"},
 				},
-				"build": task.Task{
+				"build": {
 					Cmd:  "go build .",
 					Deps: []string{"run"},
 				},

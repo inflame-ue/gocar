@@ -38,12 +38,12 @@ func TestKahn(t *testing.T) {
 		"valid linked list graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"build":  []string{"format"},
+					"format": {},
+					"build":  {"format"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{},
+					"format": {"build"},
+					"build":  {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -56,16 +56,16 @@ func TestKahn(t *testing.T) {
 		"valid diamond graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"lint", "vet"},
+					"format": {},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"lint", "vet"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"lint", "vet"},
-					"vet":    []string{"build"},
-					"lint":   []string{"build"},
-					"build":  []string{},
+					"format": {"lint", "vet"},
+					"vet":    {"build"},
+					"lint":   {"build"},
+					"build":  {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -80,18 +80,18 @@ func TestKahn(t *testing.T) {
 		"tree-style branching graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"vet", "lint"},
-					"run":    []string{"lint"},
+					"format": {},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"vet", "lint"},
+					"run":    {"lint"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"vet", "lint"},
-					"vet":    []string{"build"},
-					"lint":   []string{"build", "run"},
-					"build":  []string{},
-					"run":    []string{},
+					"format": {"vet", "lint"},
+					"vet":    {"build"},
+					"lint":   {"build", "run"},
+					"build":  {},
+					"run":    {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -107,18 +107,18 @@ func TestKahn(t *testing.T) {
 		"disconnected component graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"build":  []string{"format"},
-					"lint":   []string{},
-					"vet":    []string{"lint"},
-					"run":    []string{"vet"},
+					"format": {},
+					"build":  {"format"},
+					"lint":   {},
+					"vet":    {"lint"},
+					"run":    {"vet"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{},
-					"lint":   []string{"vet"},
-					"vet":    []string{"run"},
-					"run":    []string{},
+					"format": {"build"},
+					"build":  {},
+					"lint":   {"vet"},
+					"vet":    {"run"},
+					"run":    {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -134,12 +134,12 @@ func TestKahn(t *testing.T) {
 		"cyclic linked list graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{"format"},
+					"format": {"build"},
+					"build":  {"format"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{"format"},
+					"format": {"build"},
+					"build":  {"format"},
 				},
 				indeg: map[string]int{
 					"format": 1,
@@ -154,16 +154,16 @@ func TestKahn(t *testing.T) {
 		"cyclic diamond graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{"build"},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"lint", "vet"},
+					"format": {"build"},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"lint", "vet"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"vet", "lint"},
-					"vet":    []string{"build"},
-					"lint":   []string{"build"},
-					"build":  []string{"format"},
+					"format": {"vet", "lint"},
+					"vet":    {"build"},
+					"lint":   {"build"},
+					"build":  {"format"},
 				},
 				indeg: map[string]int{
 					"format": 1,
@@ -201,12 +201,12 @@ func TestDFSOrder(t *testing.T) {
 		"valid linked list graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"build":  []string{"format"},
+					"format": {},
+					"build":  {"format"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{},
+					"format": {"build"},
+					"build":  {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -219,16 +219,16 @@ func TestDFSOrder(t *testing.T) {
 		"valid diamond graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"lint", "vet"},
+					"format": {},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"lint", "vet"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"lint", "vet"},
-					"vet":    []string{"build"},
-					"lint":   []string{"build"},
-					"build":  []string{},
+					"format": {"lint", "vet"},
+					"vet":    {"build"},
+					"lint":   {"build"},
+					"build":  {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -243,18 +243,18 @@ func TestDFSOrder(t *testing.T) {
 		"tree-style branching graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"vet", "lint"},
-					"run":    []string{"lint"},
+					"format": {},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"vet", "lint"},
+					"run":    {"lint"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"vet", "lint"},
-					"vet":    []string{"build"},
-					"lint":   []string{"build", "run"},
-					"build":  []string{},
-					"run":    []string{},
+					"format": {"vet", "lint"},
+					"vet":    {"build"},
+					"lint":   {"build", "run"},
+					"build":  {},
+					"run":    {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -270,18 +270,18 @@ func TestDFSOrder(t *testing.T) {
 		"disconnected component graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{},
-					"build":  []string{"format"},
-					"lint":   []string{},
-					"vet":    []string{"lint"},
-					"run":    []string{"vet"},
+					"format": {},
+					"build":  {"format"},
+					"lint":   {},
+					"vet":    {"lint"},
+					"run":    {"vet"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{},
-					"lint":   []string{"vet"},
-					"vet":    []string{"run"},
-					"run":    []string{},
+					"format": {"build"},
+					"build":  {},
+					"lint":   {"vet"},
+					"vet":    {"run"},
+					"run":    {},
 				},
 				indeg: map[string]int{
 					"format": 0,
@@ -297,12 +297,12 @@ func TestDFSOrder(t *testing.T) {
 		"cyclic linked list graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{"format"},
+					"format": {"build"},
+					"build":  {"format"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"build"},
-					"build":  []string{"format"},
+					"format": {"build"},
+					"build":  {"format"},
 				},
 				indeg: map[string]int{
 					"format": 1,
@@ -317,16 +317,16 @@ func TestDFSOrder(t *testing.T) {
 		"cyclic diamond graph": {
 			graph: &Graph{
 				deps: map[string][]string{
-					"format": []string{"build"},
-					"vet":    []string{"format"},
-					"lint":   []string{"format"},
-					"build":  []string{"lint", "vet"},
+					"format": {"build"},
+					"vet":    {"format"},
+					"lint":   {"format"},
+					"build":  {"lint", "vet"},
 				},
 				rdeps: map[string][]string{
-					"format": []string{"vet", "lint"},
-					"vet":    []string{"build"},
-					"lint":   []string{"build"},
-					"build":  []string{"format"},
+					"format": {"vet", "lint"},
+					"vet":    {"build"},
+					"lint":   {"build"},
+					"build":  {"format"},
 				},
 				indeg: map[string]int{
 					"format": 1,
