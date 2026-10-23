@@ -4,26 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"path/filepath"
 	"slices"
 
+	"github.com/inflame-ue/gocar/internal/glob"
 	"github.com/inflame-ue/gocar/internal/task"
 )
-
-func normalizePath(dir, path string) (string, error) {
-	p := filepath.FromSlash(path)
-
-	if !filepath.IsAbs(p) {
-		p = filepath.Join(dir, p)
-	}
-
-	rel, err := filepath.Rel(dir, p)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.ToSlash(filepath.Clean(rel)), nil
-}
 
 type Fingerprinter struct {
 	Dir string
@@ -46,25 +31,29 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 		}
 		writeField(h, []byte(t.Cmd))
 
-		inputs := slices.Clone(t.Inputs)
-		slices.Sort(inputs)
-		for _, path := range slices.Compact(inputs) {
-			normalized, err := normalizePath(fp.Dir, path)
+		var inputs []string
+		for _, pattern := range t.Inputs {
+			matches, err := glob.Expand(fp.Dir, pattern)
 			if err != nil {
 				return nil, &InputError{
-					Task:  name,
-					Path:  path,
+					Task: name, 
+					Path: pattern,
 					Cause: err,
 				}
 			}
-			writeField(h, []byte(normalized))
+			inputs = append(inputs, matches...)
+		}
+		
+		slices.Sort(inputs)
+		for _, path := range slices.Compact(inputs) {
+			writeField(h, []byte(path))
 
-			if fileHash, ok := fileHashes[normalized]; ok {
+			if fileHash, ok := fileHashes[path]; ok {
 				writeField(h, fileHash)
 				continue
 			}
 
-			fileHash, err := hashFile(fp.Dir, normalized)
+			fileHash, err := hashFile(fp.Dir, path)
 			if err != nil {
 				return nil, &InputError{
 					Task:  name,
@@ -72,7 +61,7 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 					Cause: err,
 				}
 			}
-			fileHashes[normalized] = fileHash
+			fileHashes[path] = fileHash
 			writeField(h, fileHash)
 		}
 

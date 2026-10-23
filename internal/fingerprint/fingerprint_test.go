@@ -70,7 +70,7 @@ func TestKeysMTime(t *testing.T) {
 	spec := map[string]task.Task{
 		"build": {
 			Cmd:    "go build .",
-			Inputs: []string{file.Name()},
+			Inputs: []string{"main.go"},
 		},
 	}
 	order := []string{"build"}
@@ -101,7 +101,7 @@ func TestKeysFileContent(t *testing.T) {
 	spec := map[string]task.Task{
 		"build": {
 			Cmd:    "go build .",
-			Inputs: []string{file.Name()},
+			Inputs: []string{"main.go"},
 		},
 	}
 	order := []string{"build"}
@@ -135,7 +135,7 @@ func TestKeysMerkleCascade(t *testing.T) {
 	spec := map[string]task.Task{
 		"fmt": {
 			Cmd:    "go fmt main.go",
-			Inputs: []string{file.Name()},
+			Inputs: []string{"main.go"},
 		},
 		"vet": {
 			Cmd:  "go vet .",
@@ -237,11 +237,11 @@ func TestKeysIdenticalFileContent(t *testing.T) {
 	spec := map[string]task.Task{
 		"build": {
 			Cmd:    "go build main.go",
-			Inputs: []string{file.Name()},
+			Inputs: []string{"main.go"},
 		},
 		"otherBuild": {
 			Cmd:    "go build other.go",
-			Inputs: []string{otherFile.Name()},
+			Inputs: []string{"other.go"},
 		},
 	}
 	order := []string{"build", "otherBuild"}
