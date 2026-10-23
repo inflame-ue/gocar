@@ -1,73 +1,103 @@
 package glob
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"testing"
 )
 
-func checkPatternErr(t *testing.T, got error, want *PatternError) {
+func checkErr(t *testing.T, got, want error) {
+	t.Helper()
+	if reflect.TypeOf(got) != reflect.TypeOf(want) {
+		t.Fatalf("expected %T, got %T", want, got)
+	}
+}
+
+func makeTree(t *testing.T) string {
 	t.Helper()
 
-	if got == nil && want == nil {
-		return
-	}
-
-	if got != nil && want == nil {
-		t.Fatalf("expected no err, got %v", got)
-	}
-
-	if got == nil && want != nil {
-		t.Fatal("expected an err, got no err instead")
-	}
-
-	var pe *PatternError
-	if !errors.As(got, &pe) {
-		t.Fatalf("expected err type %T, got %T instead", want, got)
-	}
-
-	if pe.Pattern != want.Pattern {
-		t.Errorf("expected pattern %s, got %s instead", want.Pattern, pe.Pattern)
-	}
-}
-
-func checkNoMatchErr(t *testing.T, got error, want *NoMatchError) {
-	var nme *NoMatchError
-	if !errors.As(got, &nme) {
-		t.Fatalf("expected err type %T, got %T instead", want, got)
-	}
-
-	if nme.Pattern != want.Pattern {
-		t.Errorf("expected pattern %s, got %s instead", want.Pattern, nme.Pattern)
-	}
-}
-
-func makeTree(t *testing.T) {
 	dir := t.TempDir()
 	files := []string{"main.go", "src/main.go", "src/pkg/util.go",
-		"src/pkg/util_test.go", "src/cmd/cli/main.go", "main.rs"}
+		"src/pkg/util_test.go", "src/cmd/cli/main.go"}
 
-	for _, file := range files {
-		path := filepath.Join(dir, file)
+	for _, filename := range files {
+		path := filepath.Join(dir, filename)
 
-		_, err := os.Create(path)
+		err := os.MkdirAll(filepath.Dir(path), 0o755)
 		if err != nil {
-			t.Fatalf("could not create file %s: %v", file, err)
+			t.Fatalf("failed to mkdir: %v", err)
 		}
+
+		file, err := os.Create(path)
+		if err != nil {
+			t.Fatalf("could not create file %s: %v", filename, err)
+		}
+		file.Close()
 	}
+
+	return dir
 }
 
 func TestExpand(t *testing.T) {
+	dir := makeTree(t)
+	tests := map[string]struct {
+		pattern string
+		want    []string
+		wantErr error
+	}{
+		"literal": {
+			pattern: "main.go",
+			want:    []string{"main.go"},
+		},
+		"missing literal": {
+			pattern: "missing.go",
+			wantErr: &NoMatchError{
+				Pattern: "missing.go",
+			},
+		},
+		"* expansion": {
+			pattern: "src/*.go",
+			want:    []string{"src/main.go"},
+		},
+		"** expansion": {
+			pattern: "src/**/*.go",
+			want:    []string{"src/cmd/cli/main.go", "src/main.go", "src/pkg/util.go", "src/pkg/util_test.go"},
+		},
+		"* expansion no match": {
+			pattern: "*.rs",
+			wantErr: &NoMatchError{
+				Pattern: "*.rs",
+			},
+		},
+		"invalid pattern": {
+			pattern: "../*.go",
+			wantErr: &PatternError{
+				Pattern: "../*.go",
+			},
+		},
+	}
 
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			paths, err := Expand(dir, tc.pattern)
+			checkErr(t, err, tc.wantErr)
+
+			if !slices.Equal(paths, tc.want) {
+				t.Errorf("expected paths %v, got %v instead", tc.want, paths)
+			}
+		})
+	}
 }
 
 func TestSplitSegments(t *testing.T) {
 	tests := map[string]struct {
 		pattern      string
 		wantSegments []string
-		wantErr      *PatternError
+		wantErr      error
 	}{
 		"valid pattern": {
 			pattern:      "src/**/*.go",
@@ -102,7 +132,7 @@ func TestSplitSegments(t *testing.T) {
 			t.Parallel()
 
 			segments, err := splitSegments(tc.pattern)
-			checkPatternErr(t, err, tc.wantErr)
+			checkErr(t, err, tc.wantErr)
 
 			if !slices.Equal(segments, tc.wantSegments) {
 				t.Errorf("expected segments %v, got %v instead", tc.wantSegments, segments)
