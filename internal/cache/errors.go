@@ -15,10 +15,10 @@ type IOError struct {
 	Cause error
 }
 
-func (e *IOError) Error() string { 
-	return fmt.Sprintf("path %q: %v", e.Path, e.Cause) 
+func (e *IOError) Error() string {
+	return fmt.Sprintf("path %q: %v", e.Path, e.Cause)
 }
 
-func (e *IOError) Unwrap() error { 
-	return e.Cause 
+func (e *IOError) Unwrap() error {
+	return e.Cause
 }
