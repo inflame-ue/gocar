@@ -41,6 +41,31 @@ func checkInputErr(t *testing.T, got error, wantErr *InputError) {
 	}
 }
 
+func makeTree(t *testing.T) string {
+	t.Helper()
+
+	testDir := t.TempDir()
+	files := []string{"main.go", "src/main.go", "src/pkg/util.go",
+		"src/pkg/util_test.go", "src/cmd/cli/main.go"}
+
+	for _, filename := range files {
+		path := filepath.Join(testDir, filename)
+
+		err := os.MkdirAll(filepath.Dir(path), 0o755)
+		if err != nil {
+			t.Fatalf("failed to mkdir: %v", err)
+		}
+
+		file, err := os.Create(path)
+		if err != nil {
+			t.Fatalf("could not create file %s: %v", filename, err)
+		}
+		file.Close()
+	}
+
+	return testDir
+}
+
 func getKeys(t *testing.T, dir string, spec map[string]task.Task, order []string) map[string]string {
 	t.Helper()
 
@@ -119,15 +144,9 @@ func TestKeysFileContent(t *testing.T) {
 }
 
 func TestKeysMerkleCascade(t *testing.T) {
-	testDir := t.TempDir()
+	testDir := makeTree(t)
 
-	file, err := os.Create(filepath.Join(testDir, "main.go"))
-	if err != nil {
-		t.Fatalf("file creation failed: %v", err)
-	}
-	defer file.Close()
-
-	_, err = file.Write([]byte("package main\n"))
+	err := os.WriteFile(filepath.Join(testDir, "src", "main.go"), []byte("package main\n"), 0o644)
 	if err != nil {
 		t.Fatalf("file write failed: %v", err)
 	}
@@ -135,7 +154,7 @@ func TestKeysMerkleCascade(t *testing.T) {
 	spec := map[string]task.Task{
 		"fmt": {
 			Cmd:    "go fmt main.go",
-			Inputs: []string{"main.go"},
+			Inputs: []string{"src/**/*.go"},
 		},
 		"vet": {
 			Cmd:  "go vet .",
@@ -152,7 +171,7 @@ func TestKeysMerkleCascade(t *testing.T) {
 	order := []string{"lint", "fmt", "vet", "build"}
 
 	oldKeys := getKeys(t, testDir, spec, order)
-	_, err = file.Write([]byte("import \"testing\"\n"))
+	err = os.WriteFile(filepath.Join(testDir, "src", "main.go"), []byte("import testing\n"), 0o644)
 	if err != nil {
 		t.Fatalf("file write failed: %v", err)
 	}
@@ -254,24 +273,7 @@ func TestKeysIdenticalFileContent(t *testing.T) {
 }
 
 func TestKeysNewFile(t *testing.T) {
-	testDir := t.TempDir()
-	files := []string{"main.go", "src/main.go", "src/pkg/util.go",
-		"src/pkg/util_test.go", "src/cmd/cli/main.go"}
-
-	for _, filename := range files {
-		path := filepath.Join(testDir, filename)
-
-		err := os.MkdirAll(filepath.Dir(path), 0o755)
-		if err != nil {
-			t.Fatalf("failed to mkdir: %v", err)
-		}
-
-		file, err := os.Create(path)
-		if err != nil {
-			t.Fatalf("could not create file %s: %v", filename, err)
-		}
-		file.Close()
-	}
+	testDir := makeTree(t)
 	
 	spec := map[string]task.Task{
 		"build": {
@@ -282,13 +284,22 @@ func TestKeysNewFile(t *testing.T) {
 	order := []string{"build"}
 
 	oldKeys := getKeys(t, testDir, spec, order)
-	file, err := os.Create(filepath.Join(testDir, "src/additional.go"))
+	file, err := os.Create(filepath.Join(testDir, "src/main.py"))
+	if err != nil {
+		t.Fatalf("could not create file \"src/main.py\": %v", err)
+	}
+	file.Close()
+	newKeys := getKeys(t, testDir, spec, order)
+	if !maps.Equal(oldKeys, newKeys) {
+		t.Error("hash for build should not change after a file that is not matched by glob expansion is introduced into the cwd")
+	}
+	
+	file, err = os.Create(filepath.Join(testDir, "src/additional.go"))
 	if err != nil {
 		t.Fatalf("could not create file \"src/additional.go\": %v", err)
 	}
 	file.Close()
-	newKeys := getKeys(t, testDir, spec, order)
-
+	newKeys = getKeys(t, testDir, spec, order)
 	if maps.Equal(oldKeys, newKeys) {
 		t.Error("hash for build should chain after a new file is added to the directory under glob expansion")
 	}
