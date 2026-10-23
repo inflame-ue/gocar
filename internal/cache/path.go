@@ -1,13 +1,15 @@
 package cache
 
 import (
+	"io"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
 func safeStore(root, path string) (string, error) {
 	name := filepath.ToSlash(path)
-	if len(path) == 0 {
+	if len(name) == 0 {
 		return "", &PathError{
 			Path: path,
 			Msg:  "path cannot be empty",
@@ -31,4 +33,38 @@ func safeStore(root, path string) (string, error) {
 	}
 
 	return name, nil
+}
+
+func safeJoin(root, path string) (string, error) {
+	file, err := safeStore(root, path)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(root, file), nil
+}
+
+func copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return &IOError{
+			Path:  src,
+			Cause: err,
+		}
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return &IOError{
+			Path:  dst,
+			Cause: err,
+		}
+	}
+	defer dstFile.Close()
+
+	if _, err = io.Copy(dstFile, srcFile); err != nil {
+		return &IOError{Path: dst, Cause: err}
+	}
+	return nil
 }
