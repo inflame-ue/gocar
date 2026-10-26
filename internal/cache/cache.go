@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -68,4 +70,52 @@ func (c *L1) Put(key string, outputs []string, dir string) error {
 	}
 
 	return nil
+}
+
+func (c *L1) Get(key, dir string) (bool, error) {
+	cachePath := filepath.Join(c.root, key)
+	if _, err := os.Stat(cachePath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, &IOError{Path: cachePath, Cause: err}
+	}
+
+	err := filepath.WalkDir(cachePath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return &IOError{Path: path, Cause: err}
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		rel, err := filepath.Rel(cachePath, path)
+		if err != nil {
+			return &IOError{Path: path, Cause: err}
+		}
+
+		dest, err := safeJoin(dir, rel)
+		if err != nil {
+			return err
+		}
+
+		err = os.MkdirAll(filepath.Dir(dest), 0o700)
+		if err != nil {
+			return &IOError{Path: filepath.Dir(dest), Cause: err}
+		}
+
+		err = copyFile(path, dest)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

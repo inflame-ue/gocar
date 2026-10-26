@@ -161,3 +161,76 @@ func TestPutEscapingOutput(t *testing.T) {
 	err := c.Put(key, []string{"../escaping.go"}, dir)
 	checkPathError(t, err, &PathError{Path: "../escaping.go"})
 }
+
+func TestPutGetRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	dir := t.TempDir()
+	c := NewL1(root)
+
+	file := struct{ rel, content string }{"src/main.go", "package main"}
+
+	var outputs []string
+	outputs = []string{writeFile(t, dir, file.rel, file.content)}
+
+	err := c.Put(key, outputs, dir)
+	checkIOError(t, err, nil)
+
+	path := filepath.Join(dir, file.rel)
+	err = os.RemoveAll(filepath.Dir(path))
+	if err != nil {
+		t.Fatalf("remove %q: %v", filepath.Dir(path), err)
+	}
+
+	ok, err := c.Get(key, dir)
+	checkIOError(t, err, nil)
+
+	if !ok {
+		t.Fatalf("expected the key %q to hit", key)
+	}
+
+	assertFile(t, path, file.content)
+}
+
+func TestGetMiss(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	dir := t.TempDir()
+	c := NewL1(root)
+
+	ok, err := c.Get(key, dir)
+	checkIOError(t, err, nil)
+
+	if ok {
+		t.Errorf("expected the key %q to miss", key)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("read %q: %v", dir, err)
+	}
+
+	if len(entries) != 0 {
+		t.Error("copied files to source dir, even though cache was not hit")
+	}
+}
+
+func TestPutGetEmptySentinel(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	dir := t.TempDir()
+
+	c := NewL1(root)
+	err := c.Put(key, []string{}, dir)
+	checkIOError(t, err, nil)
+
+	ok, err := c.Get(key, dir)
+	checkIOError(t, err, nil)
+
+	if !ok {
+		t.Errorf("expected the key %q to hit", key)
+	}
+}
