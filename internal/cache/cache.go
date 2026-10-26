@@ -34,7 +34,7 @@ func (c *L1) Put(key string, outputs []string, dir string) error {
 	if err != nil {
 		return &IOError{Path: cachePath, Cause: err}
 	}
-	defer os.RemoveAll(tmp)
+	defer func() { _ = os.RemoveAll(tmp) }()
 
 	// note: if outputs slice is empty, the loop is skipped
 	// we rename the tmp directory without copying any bytes

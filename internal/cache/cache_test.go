@@ -171,8 +171,7 @@ func TestPutGetRoundTrip(t *testing.T) {
 
 	file := struct{ rel, content string }{"src/main.go", "package main"}
 
-	var outputs []string
-	outputs = []string{writeFile(t, dir, file.rel, file.content)}
+	var outputs = []string{writeFile(t, dir, file.rel, file.content)}
 
 	err := c.Put(key, outputs, dir)
 	checkIOError(t, err, nil)
