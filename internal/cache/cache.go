@@ -15,13 +15,16 @@ func NewL1(root string) *L1 {
 	}
 }
 
+
+
 func (c *L1) Put(key string, outputs []string, dir string) error {
 	err := os.MkdirAll(c.root, 0o700)
 	if err != nil {
-		return &IOError{Path:  c.root, Cause: err}
+		return &IOError{Path: c.root, Cause: err}
 	}
 
 	cachePath := filepath.Join(c.root, key)
+	
 	// the cachePath is already present at c.root --> return
 	if _, err := os.Stat(cachePath); err == nil {
 		return nil
@@ -29,10 +32,12 @@ func (c *L1) Put(key string, outputs []string, dir string) error {
 	
 	tmp, err := os.MkdirTemp(c.root, "tmp-*")
 	if err != nil {
-		return &IOError{Path:  cachePath, Cause: err}
+		return &IOError{Path: cachePath, Cause: err}
 	}
 	defer os.RemoveAll(tmp)
 
+	// note: if outputs slice is empty, the loop is skipped
+	// we rename the tmp directory without copying any bytes
 	for _, path := range outputs {
 		dest, err := safeJoin(tmp, path)
 		if err != nil {
@@ -46,7 +51,7 @@ func (c *L1) Put(key string, outputs []string, dir string) error {
 
 		err = os.MkdirAll(filepath.Dir(dest), 0o700)
 		if err != nil {
-			return &IOError{Path:  cachePath, Cause: err}
+			return &IOError{Path: cachePath, Cause: err}
 		}
 
 		err = copyFile(src, dest)

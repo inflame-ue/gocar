@@ -22,7 +22,7 @@ func checkPathError(t *testing.T, got error, wantErr *PathError) {
 
 	var pe *PathError
 	if !errors.As(got, &pe) {
-		t.Errorf("expected err type %T, got %T instead", wantErr, got)
+		t.Fatalf("expected err type %T, got %T instead", wantErr, got)
 	}
 
 	if pe.Path != wantErr.Path {
