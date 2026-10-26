@@ -9,6 +9,10 @@ import (
 
 const key = "test-key"
 
+// TODO: the issue of repeating error check helpers is prelevant enough
+// to introduce a generic that will be utilized across all of the internal packages.
+// This has to be done after the cache functionality is implemented, so as to not
+// pollute the implementation branch.
 func checkIOError(t *testing.T, got error, wantErr *IOError) {
 	t.Helper()
 
@@ -83,3 +87,77 @@ func TestPutZeroOutputs(t *testing.T) {
 	}
 }
 
+func TestPutMultiOutputMirror(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	dir := t.TempDir()
+	c := NewL1(root)
+
+	files := []struct{ rel, content string }{
+		{"src/main.go", "package main"},
+		{"other/main.go", "package other"},
+	}
+
+	var outputs []string
+	for _, f := range files {
+		outputs = append(outputs, writeFile(t, dir, f.rel, f.content))
+	}
+
+	err := c.Put(key, outputs, dir)
+	checkIOError(t, err, nil)
+
+	for _, f := range files {
+		assertFile(t, filepath.Join(root, key, f.rel), f.content)
+	}
+}
+
+func TestPutDuplicate(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	dir := t.TempDir()
+	c := NewL1(root)
+
+	files := []struct{ rel, content string }{
+		{"src/main.go", "package main"},
+		{"src/main.go", "package other"},
+	}
+
+	var outputs []string
+	outputs = []string{writeFile(t, dir, files[0].rel, files[0].content)}
+	err := c.Put(key, outputs, dir)
+	checkIOError(t, err, nil)
+
+	outputs = []string{writeFile(t, dir, files[1].rel, files[1].content)}
+	err = c.Put(key, outputs, dir)
+	checkIOError(t, err, nil)
+
+	assertFile(t, filepath.Join(root, key, files[0].rel), files[0].content)
+}
+
+func TestPutMissingSource(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	dir := t.TempDir()
+	c := NewL1(root)
+
+	err := c.Put(key, []string{"missing.go"}, dir)
+	checkIOError(t, err, &IOError{Path: filepath.Join(dir, "missing.go")})
+
+	if _, err := os.Stat(filepath.Join(root, key)); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("cache key dir should not exist after failed Put")
+	}
+}
+
+func TestPutEscapingOutput(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	dir := t.TempDir()
+	c := NewL1(root)
+
+	err := c.Put(key, []string{"../escaping.go"}, dir)
+	checkPathError(t, err, &PathError{Path: "../escaping.go"})
+}
