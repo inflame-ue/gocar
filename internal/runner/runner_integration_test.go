@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/inflame-ue/gocar/internal/task"
+	"github.com/inflame-ue/gocar/internal/testutil"
 )
 
 func TestRunIntegration(t *testing.T) {
@@ -54,7 +55,10 @@ func TestRunIntegration(t *testing.T) {
 			ctx, dir := context.Background(), t.TempDir()
 			err := Run(ctx, tc.spec, tc.order, dir)
 
-			checkRunnerErr(t, err, tc.wantErr)
+			tErr := testutil.CheckErrAs(t, err, tc.wantErr)
+			if tc.wantErr != nil && tErr.Task != tc.wantErr.Task {
+				t.Errorf("expected to fail on task %s, failed on %s instead", tc.wantErr.Task, tErr.Task)
+			}
 
 			if tc.outputFile != "" {
 				data, err := os.ReadFile(filepath.Join(dir, tc.outputFile))

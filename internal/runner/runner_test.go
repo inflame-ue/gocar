@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/inflame-ue/gocar/internal/task"
+	"github.com/inflame-ue/gocar/internal/testutil"
 )
 
 type testCommander struct {
@@ -22,31 +23,6 @@ func (tc *testCommander) run(ctx context.Context, cmd, dir string, stdout, stder
 
 	tc.ran = append(tc.ran, cmd)
 	return nil
-}
-
-func checkRunnerErr(t *testing.T, got error, wantErr *TaskError) {
-	t.Helper()
-
-	if got != nil && wantErr == nil {
-		t.Fatalf("expected no error, got %v instead", got)
-	}
-
-	if got == nil && wantErr != nil {
-		t.Fatalf("expected an error, got no err instead")
-	}
-
-	if got != nil && wantErr != nil {
-		var te *TaskError
-
-		if ok := errors.As(got, &te); !ok {
-			t.Errorf("expected error type %T, got %T instead", wantErr, got)
-		}
-
-		if te.Task != wantErr.Task {
-			t.Errorf("expected to fail on task %s, failed on %s instead", wantErr.Task, te.Task)
-		}
-
-	}
 }
 
 func TestRun(t *testing.T) {
@@ -138,7 +114,11 @@ func TestRun(t *testing.T) {
 			ctx := context.Background()
 			err := r.Run(ctx, tc.spec, tc.order)
 
-			checkRunnerErr(t, err, tc.wantErr)
+			tErr := testutil.CheckErrAs(t, err, tc.wantErr)
+			if tc.wantErr != nil && tErr.Task != tc.wantErr.Task {
+				t.Errorf("expected to fail on task %s, failed on %s instead", tc.wantErr.Task, tErr.Task)
+			}
+
 			if !slices.Equal(cmder.ran, tc.wantRan) {
 				t.Errorf("expected %v to run, got %v instead", tc.wantRan, cmder.ran)
 			}
