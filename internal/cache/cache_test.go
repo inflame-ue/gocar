@@ -140,7 +140,7 @@ func TestPutEscapingOutput(t *testing.T) {
 	wantErr := &PathError{Path: "../escaping.go"}
 	tErr := testutil.CheckErrAs(t, err, wantErr)
 	if tErr.Path != wantErr.Path {
-		t.Errorf("expectedp path %q in error, got %q instead", wantErr.Path, tErr.Path)
+		t.Errorf("expected path %q in error, got %q instead", wantErr.Path, tErr.Path)
 	}
 }
 

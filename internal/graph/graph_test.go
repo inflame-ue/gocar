@@ -151,7 +151,7 @@ func TestBuild(t *testing.T) {
 			}
 
 			if tc.wantErr != nil && tErr.Dep != tc.wantErr.Dep {
-				t.Errorf("expected dep %s, got %s instead", tErr.Dep, tc.wantErr.Dep)
+				t.Errorf("expected dep %s, got %s instead", tc.wantErr.Dep, tErr.Dep)
 			}
 
 			if got == nil || tc.want == nil {
