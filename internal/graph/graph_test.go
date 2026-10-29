@@ -1,42 +1,13 @@
 package graph
 
 import (
-	"errors"
 	"maps"
 	"slices"
 	"testing"
 
 	"github.com/inflame-ue/gocar/internal/task"
+	"github.com/inflame-ue/gocar/internal/testutil"
 )
-
-func checkBuildErr(t *testing.T, got error, want *MissingDepError) {
-	t.Helper()
-
-	if got == nil && want == nil {
-		return
-	}
-
-	if got != nil && want == nil {
-		t.Fatalf("expected no err, got %v", got)
-	}
-
-	if got == nil && want != nil {
-		t.Fatal("expected an err, got no err instead")
-	}
-
-	var mde *MissingDepError
-	if !errors.As(got, &mde) {
-		t.Errorf("expected err type MissingDepError, got %T instead", got)
-	}
-
-	if mde.Task != want.Task {
-		t.Errorf("expected task %s, got %s instead", want.Task, mde.Task)
-	}
-
-	if mde.Dep != want.Dep {
-		t.Errorf("expected dep %s, got %s instead", want.Dep, mde.Dep)
-	}
-}
 
 func TestBuild(t *testing.T) {
 	tests := map[string]struct {
@@ -174,7 +145,14 @@ func TestBuild(t *testing.T) {
 
 			got, err := Build(tc.spec)
 
-			checkBuildErr(t, err, tc.wantErr)
+			tErr := testutil.CheckErrAs(t, err, tc.wantErr)
+			if tc.wantErr != nil && tErr.Task != tc.wantErr.Task {
+				t.Errorf("expected task %s for error, got %s instead", tc.wantErr.Task, tErr.Task)
+			}
+
+			if tc.wantErr != nil && tErr.Dep != tc.wantErr.Dep {
+				t.Errorf("expected dep %s, got %s instead", tErr.Dep, tc.wantErr.Dep)
+			}
 
 			if got == nil || tc.want == nil {
 				return
