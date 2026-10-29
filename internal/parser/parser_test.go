@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/inflame-ue/gocar/internal/task"
+	"github.com/inflame-ue/gocar/internal/testutil"
 )
 
 type wantError struct {
@@ -27,42 +28,6 @@ func stringSliceEqual(a, b []string) bool {
 	slices.Sort(s2)
 
 	return slices.Equal(s1, s2)
-}
-
-func checkParserErr(t *testing.T, got error, want *wantError) {
-	t.Helper()
-
-	if got == nil && want == nil {
-		return
-	}
-
-	if got != nil && want == nil {
-		t.Fatalf("expected no err, got %v", got)
-	}
-
-	if got == nil && want != nil {
-		t.Fatal("expected err, got no err instead")
-	}
-
-	if want.is != nil && !errors.Is(got, want.is) {
-		t.Errorf("expected err type %T, got %T instead", want.is, got)
-	}
-
-	if want.task != "" || want.field != "" {
-		var ve *ValidationError
-
-		if !errors.As(got, &ve) {
-			t.Fatalf("expected ValidationError, got %T", got)
-		}
-
-		if ve.Task != want.task {
-			t.Errorf("expected task %s, got %s instead", want.task, ve.Task)
-		}
-
-		if ve.Field != want.field {
-			t.Errorf("expected field %s, got %s instead", want.field, ve.Field)
-		}
-	}
 }
 
 func TestParse(t *testing.T) {
@@ -180,7 +145,35 @@ func TestParse(t *testing.T) {
 
 			tasks, err := Parse(data)
 
-			checkParserErr(t, err, tc.wantErr)
+			if tc.wantErr == nil {
+				testutil.CheckNoErr(t, err)
+			} else {
+				if err == nil {
+					t.Fatalf("expected err %v, got no err instead", tc.wantErr)
+				}
+
+				if tc.wantErr.is != nil && !errors.Is(err, tc.wantErr.is) {
+					t.Errorf("expected err %v, got %v instead", tc.wantErr.is, err)
+				}
+
+				switch wantErr := tc.wantErr.as.(type) {
+				case nil:
+				case *DocumentError:
+					testutil.CheckErrAs(t, err, wantErr)
+				case *ValidationError:
+					ve := testutil.CheckErrAs(t, err, wantErr)
+
+					if ve.Task != tc.wantErr.task {
+						t.Errorf("expected task %s, got %s instead", tc.wantErr.task, ve.Task)
+					}
+
+					if ve.Field != tc.wantErr.field {
+						t.Errorf("expected field %s, got %s instead", tc.wantErr.field, ve.Field)
+					}
+				default:
+					t.Fatalf("unhandled wantError.as type %T", wantErr)
+				}
+			}
 
 			if len(tasks) != len(tc.want) {
 				t.Errorf("expected %d tasks, got %d instead", len(tc.want), len(tasks))
