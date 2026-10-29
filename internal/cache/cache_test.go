@@ -5,38 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/inflame-ue/gocar/internal/testutil"
 )
 
 const key = "test-key"
-
-// TODO: the issue of repeating error check helpers is prelevant enough
-// to introduce a generic that will be utilized across all of the internal packages.
-// This has to be done after the cache functionality is implemented, so as to not
-// pollute the implementation branch.
-func checkIOError(t *testing.T, got error, wantErr *IOError) {
-	t.Helper()
-
-	if got == nil && wantErr == nil {
-		return
-	}
-
-	if got != nil && wantErr == nil {
-		t.Fatalf("expected no err, got %v", got)
-	}
-
-	if got == nil && wantErr != nil {
-		t.Fatalf("expected an err, got no err")
-	}
-
-	var ioe *IOError
-	if !errors.As(got, &ioe) {
-		t.Fatalf("expected err type %T, got %T instead", wantErr, got)
-	}
-
-	if ioe.Path != wantErr.Path {
-		t.Errorf("expected path %q, got %q instead", wantErr.Path, ioe.Path)
-	}
-}
 
 func writeFile(t *testing.T, dir, rel, content string) string {
 	t.Helper()
@@ -74,7 +47,6 @@ func TestPutZeroOutputs(t *testing.T) {
 
 	c := NewL1(root)
 	err := c.Put(key, []string{}, dir)
-	checkIOError(t, err, nil)
 
 	path := filepath.Join(root, key)
 	entries, err := os.ReadDir(path)
@@ -105,7 +77,7 @@ func TestPutMultiOutputMirror(t *testing.T) {
 	}
 
 	err := c.Put(key, outputs, dir)
-	checkIOError(t, err, nil)
+	testutil.CheckNoErr(t, err)
 
 	for _, f := range files {
 		assertFile(t, filepath.Join(root, key, f.rel), f.content)
@@ -127,11 +99,11 @@ func TestPutDuplicate(t *testing.T) {
 	var outputs []string
 	outputs = []string{writeFile(t, dir, files[0].rel, files[0].content)}
 	err := c.Put(key, outputs, dir)
-	checkIOError(t, err, nil)
+	testutil.CheckNoErr(t, err)
 
 	outputs = []string{writeFile(t, dir, files[1].rel, files[1].content)}
 	err = c.Put(key, outputs, dir)
-	checkIOError(t, err, nil)
+	testutil.CheckNoErr(t, err)
 
 	assertFile(t, filepath.Join(root, key, files[0].rel), files[0].content)
 }
@@ -144,7 +116,12 @@ func TestPutMissingSource(t *testing.T) {
 	c := NewL1(root)
 
 	err := c.Put(key, []string{"missing.go"}, dir)
-	checkIOError(t, err, &IOError{Path: filepath.Join(dir, "missing.go")})
+
+	wantErr := &IOError{Path: filepath.Join(dir, "missing.go")}
+	tErr := testutil.CheckErrAs(t, err, wantErr)
+	if tErr.Path != wantErr.Path {
+		t.Errorf("expected path %q in error, got %q instead", wantErr.Path, tErr.Path)
+	}
 
 	if _, err := os.Stat(filepath.Join(root, key)); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("cache key dir should not exist after failed Put")
@@ -159,7 +136,12 @@ func TestPutEscapingOutput(t *testing.T) {
 	c := NewL1(root)
 
 	err := c.Put(key, []string{"../escaping.go"}, dir)
-	checkPathError(t, err, &PathError{Path: "../escaping.go"})
+
+	wantErr := &PathError{Path: "../escaping.go"}
+	tErr := testutil.CheckErrAs(t, err, wantErr)
+	if tErr.Path != wantErr.Path {
+		t.Errorf("expectedp path %q in error, got %q instead", wantErr.Path, tErr.Path)
+	}
 }
 
 func TestPutGetRoundTrip(t *testing.T) {
@@ -174,7 +156,7 @@ func TestPutGetRoundTrip(t *testing.T) {
 	var outputs = []string{writeFile(t, dir, file.rel, file.content)}
 
 	err := c.Put(key, outputs, dir)
-	checkIOError(t, err, nil)
+	testutil.CheckNoErr(t, err)
 
 	path := filepath.Join(dir, file.rel)
 	err = os.RemoveAll(filepath.Dir(path))
@@ -183,7 +165,7 @@ func TestPutGetRoundTrip(t *testing.T) {
 	}
 
 	ok, err := c.Get(key, dir)
-	checkIOError(t, err, nil)
+	testutil.CheckNoErr(t, err)
 
 	if !ok {
 		t.Fatalf("expected the key %q to hit", key)
@@ -200,7 +182,7 @@ func TestGetMiss(t *testing.T) {
 	c := NewL1(root)
 
 	ok, err := c.Get(key, dir)
-	checkIOError(t, err, nil)
+	testutil.CheckNoErr(t, err)
 
 	if ok {
 		t.Errorf("expected the key %q to miss", key)
@@ -224,10 +206,10 @@ func TestPutGetEmptySentinel(t *testing.T) {
 
 	c := NewL1(root)
 	err := c.Put(key, []string{}, dir)
-	checkIOError(t, err, nil)
+	testutil.CheckNoErr(t, err)
 
 	ok, err := c.Get(key, dir)
-	checkIOError(t, err, nil)
+	testutil.CheckNoErr(t, err)
 
 	if !ok {
 		t.Errorf("expected the key %q to hit", key)
