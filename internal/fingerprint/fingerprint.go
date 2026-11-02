@@ -12,15 +12,76 @@ import (
 
 type Fingerprinter struct {
 	Dir string
+
+	// Reconstruct Fingerprinter to keep the file hashes scoped to per-build basis.
+	// Allows to see changes between files in-between builds. 
+	fileHashes map[string][]byte
 }
 
 func NewFingerprinter(dir string) *Fingerprinter {
-	return &Fingerprinter{Dir: dir}
+	return &Fingerprinter{
+		Dir:        dir,
+		fileHashes: make(map[string][]byte),
+	}
+}
+
+// Key computes the fingerprint for a single task. The depKeys must contain
+// all keys of every task in t.Deps, otherwise Key will return a DependencyError.
+func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string) (string, error) {
+	h := sha256.New()
+
+	writeField(h, []byte(t.Cmd))
+
+	var inputs []string
+	for _, pattern := range t.Inputs {
+		matches, err := glob.Expand(fp.Dir, pattern)
+		if err != nil {
+			return "", &InputError{
+				Task:  name,
+				Path:  pattern,
+				Cause: err,
+			}
+		}
+		inputs = append(inputs, matches...)
+	}
+
+	slices.Sort(inputs)
+	for _, path := range slices.Compact(inputs) {
+		writeField(h, []byte(path))
+
+		if fileHash, ok := fp.fileHashes[path]; ok {
+			writeField(h, fileHash)
+			continue
+		}
+
+		fileHash, err := hashFile(fp.Dir, path)
+		if err != nil {
+			return "", &InputError{
+				Task:  name,
+				Path:  path,
+				Cause: err,
+			}
+		}
+
+		fp.fileHashes[path] = fileHash
+		writeField(h, fileHash)
+	}
+
+	deps := slices.Clone(t.Deps)
+	slices.Sort(deps)
+	for _, dep := range slices.Compact(deps) {
+		depKey, ok := depKeys[dep]
+		if !ok {
+			return "", nil
+		}
+		writeField(h, []byte(depKey))
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[string]string, error) {
 	digests := make(map[string][]byte, len(order))
-	fileHashes := make(map[string][]byte)
 
 	for _, name := range order {
 		h := sha256.New()
@@ -48,7 +109,7 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 		for _, path := range slices.Compact(inputs) {
 			writeField(h, []byte(path))
 
-			if fileHash, ok := fileHashes[path]; ok {
+			if fileHash, ok := fp.fileHashes[path]; ok {
 				writeField(h, fileHash)
 				continue
 			}
@@ -61,7 +122,7 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 					Cause: err,
 				}
 			}
-			fileHashes[path] = fileHash
+			fp.fileHashes[path] = fileHash
 			writeField(h, fileHash)
 		}
 
