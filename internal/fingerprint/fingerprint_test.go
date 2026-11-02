@@ -232,7 +232,7 @@ func TestKeyMissingDep(t *testing.T) {
 	}
 	_ = &DependencyError{
 		Task: "build",
-		Dep: "fix",
+		Dep:  "fix",
 	}
 
 	_, _ = NewFingerprinter(testDir).Key("build", testTask, map[string]string{"fix": "key"})
