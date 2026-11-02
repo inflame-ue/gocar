@@ -76,7 +76,10 @@ func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string
 	for _, dep := range slices.Compact(deps) {
 		depKey, ok := depKeys[dep]
 		if !ok {
-			return "", nil
+			return "", &DependencyError{
+				Task: name,
+				Dep:  dep,
+			}
 		}
 		writeField(h, []byte(depKey))
 	}
