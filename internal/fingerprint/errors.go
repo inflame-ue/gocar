@@ -14,3 +14,11 @@ func (ie *InputError) Error() string {
 func (ie *InputError) Unwrap() error {
 	return ie.Cause
 }
+
+type DependencyError struct {
+	Task, Dep string
+}
+
+func (de *DependencyError) Error() string {
+	return fmt.Sprintf("task %s: missing dep %s", de.Task, de.Dep)
+}
