@@ -23,6 +23,16 @@ type Engine struct {
 	Cache  Cache
 }
 
+func NewEngine(dir string, runner Executor, cache Cache) *Engine {
+	return &Engine{
+		Dir:    dir,
+		Runner: runner,
+		Cache:  cache,
+	}
+}
+
+// Build is the orchestration method that builds the DAG, computes
+// the topological order, and handles the execution loop for each task.
 func (e *Engine) Build(ctx context.Context, spec map[string]task.Task) error {
 	g, err := graph.Build(spec)
 	if err != nil {
@@ -39,12 +49,6 @@ func (e *Engine) Build(ctx context.Context, spec map[string]task.Task) error {
 	for _, name := range order {
 		t := spec[name]
 
-		key, err := fp.Key(name, t, keys)
-		if err != nil {
-			return err
-		}
-		keys[name] = key
-
 		// always run the task, if it does not have outputs
 		// or no cache is specified for the build system.
 		// rationale: the task with no outptus has side-effects
@@ -54,6 +58,12 @@ func (e *Engine) Build(ctx context.Context, spec map[string]task.Task) error {
 			}
 			continue
 		}
+
+		key, err := fp.Key(name, t, keys)
+		if err != nil {
+			return err
+		}
+		keys[name] = key
 
 		hit, err := e.Cache.Get(key, e.Dir)
 		if err != nil {
