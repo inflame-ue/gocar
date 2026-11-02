@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"path/filepath"
 	"slices"
 
 	"github.com/inflame-ue/gocar/internal/glob"
@@ -14,7 +15,7 @@ type Fingerprinter struct {
 	Dir string
 
 	// Reconstruct Fingerprinter to keep the file hashes scoped to per-build basis.
-	// Allows to see changes between files in-between builds. 
+	// Allows to see changes between files in-between builds.
 	fileHashes map[string][]byte
 }
 
@@ -31,6 +32,10 @@ func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string
 	h := sha256.New()
 
 	writeField(h, []byte(t.Cmd))
+
+	for _, output := range canonicalPaths(t.Outputs) {
+		writeField(h, []byte(output))
+	}
 
 	var inputs []string
 	for _, pattern := range t.Inputs {
@@ -143,4 +148,14 @@ func (fp *Fingerprinter) Keys(spec map[string]task.Task, order []string) (map[st
 	}
 
 	return keys, nil
+}
+
+func canonicalPaths(paths []string) []string {
+	canonical := make([]string, 0, len(paths))
+	for _, path := range paths {
+		canonical = append(canonical, filepath.ToSlash(filepath.Clean(path)))
+	}
+
+	slices.Sort(canonical)
+	return slices.Compact(canonical)
 }
