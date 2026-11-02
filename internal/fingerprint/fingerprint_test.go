@@ -66,11 +66,11 @@ func makeTree(t *testing.T) string {
 	return testDir
 }
 
-func getKeys(t *testing.T, dir string, spec map[string]task.Task, order []string) map[string]string {
+func getKey(t *testing.T, dir, name string, task task.Task, depKeys map[string]string) string {
 	t.Helper()
 
 	fp := NewFingerprinter(dir)
-	keys, err := fp.Keys(spec, order)
+	keys, err := fp.Key(name, task, depKeys)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,28 @@ func getKeys(t *testing.T, dir string, spec map[string]task.Task, order []string
 	return keys
 }
 
-func TestKeysMTime(t *testing.T) {
+func getKeys(t *testing.T, dir string, spec map[string]task.Task, order []string) map[string]string {
+	t.Helper()
+
+	fp := NewFingerprinter(dir)
+	keys := make(map[string]string, len(order))
+	for _, name := range order {
+		testTask, ok := spec[name]
+		if !ok {
+			t.Fatalf("task %q not found in spec", name)
+		}
+
+		key, err := fp.Key(name, testTask, keys)
+		if err != nil {
+			t.Fatal(err)
+		}
+		keys[name] = key
+	}
+
+	return keys
+}
+
+func TestKeyMTime(t *testing.T) {
 	testDir := t.TempDir()
 
 	file, err := os.Create(filepath.Join(testDir, "main.go"))
@@ -92,24 +113,21 @@ func TestKeysMTime(t *testing.T) {
 		t.Fatalf("file write failed: %v", err)
 	}
 
-	spec := map[string]task.Task{
-		"build": {
-			Cmd:    "go build .",
-			Inputs: []string{"main.go"},
-		},
+	testTask := task.Task{
+		Cmd:    "go build .",
+		Inputs: []string{"main.go"},
 	}
-	order := []string{"build"}
 
-	oldKeys := getKeys(t, testDir, spec, order)
+	oldKey := getKey(t, testDir, "build", testTask, nil)
 	os.Chtimes(file.Name(), time.Time{}, time.Now())
-	newKeys := getKeys(t, testDir, spec, order)
+	newKey := getKey(t, testDir, "build", testTask, nil)
 
-	if !maps.Equal(oldKeys, newKeys) {
+	if oldKey != newKey {
 		t.Error("hash for build should remain unchanged regardless of modification time")
 	}
 }
 
-func TestKeysFileContent(t *testing.T) {
+func TestKeyFileContent(t *testing.T) {
 	testDir := t.TempDir()
 
 	file, err := os.Create(filepath.Join(testDir, "main.go"))
@@ -123,27 +141,26 @@ func TestKeysFileContent(t *testing.T) {
 		t.Fatalf("file write failed: %v", err)
 	}
 
-	spec := map[string]task.Task{
-		"build": {
-			Cmd:    "go build .",
-			Inputs: []string{"main.go"},
-		},
+	testTask := task.Task{
+		Cmd:    "go build .",
+		Inputs: []string{"main.go"},
 	}
-	order := []string{"build"}
 
-	oldKeys := getKeys(t, testDir, spec, order)
+	oldKey := getKey(t, testDir, "build", testTask, nil)
+
 	_, err = file.Write([]byte("import \"testing\"\n"))
 	if err != nil {
 		t.Fatalf("file write failed: %v", err)
 	}
-	newKeys := getKeys(t, testDir, spec, order)
 
-	if maps.Equal(oldKeys, newKeys) {
+	newKey := getKey(t, testDir, "build", testTask, nil)
+
+	if oldKey == newKey {
 		t.Error("hash for build did not change, it should because the content of the input file changed")
 	}
 }
 
-func TestKeysMerkleCascade(t *testing.T) {
+func TestKeyMerkleCascade(t *testing.T) {
 	testDir := makeTree(t)
 
 	err := os.WriteFile(filepath.Join(testDir, "src", "main.go"), []byte("package main\n"), 0o644)
@@ -186,49 +203,41 @@ func TestKeysMerkleCascade(t *testing.T) {
 	}
 }
 
-func TestKeysCmdChange(t *testing.T) {
+func TestKeyCmdChange(t *testing.T) {
 	testDir := t.TempDir()
 
-	spec := map[string]task.Task{
-		"build": {
-			Cmd: "go build .",
-		},
+	testTask := task.Task{
+		Cmd: "go build .",
 	}
-	order := []string{"build"}
 
-	oldKeys := getKeys(t, testDir, spec, order)
-	changedSpec := map[string]task.Task{
-		"build": {
-			Cmd: "go build main.go",
-		},
+	oldKeys := getKey(t, testDir, "build", testTask, nil)
+	changedTask := task.Task{
+		Cmd: "go build main.go",
 	}
-	newKeys := getKeys(t, testDir, changedSpec, order)
+	newKeys := getKey(t, testDir, "build", changedTask, nil)
 
-	if maps.Equal(oldKeys, newKeys) {
+	if oldKeys == newKeys {
 		t.Error("hash for build should change when the command changes")
 	}
 }
 
-func TestKeysMissingFile(t *testing.T) {
+func TestKeyMissingFile(t *testing.T) {
 	testDir := t.TempDir()
 
-	spec := map[string]task.Task{
-		"build": {
-			Cmd:    "go build main.go",
-			Inputs: []string{filepath.Join(testDir, "main.go")},
-		},
+	testTask := task.Task{
+		Cmd:    "go build main.go",
+		Inputs: []string{filepath.Join(testDir, "main.go")},
 	}
-	order := []string{"build"}
 	wantErr := &InputError{
 		Task: "build",
-		Path: spec["build"].Inputs[0],
+		Path: testTask.Inputs[0],
 	}
 
-	_, err := NewFingerprinter(testDir).Keys(spec, order)
+	_, err := NewFingerprinter(testDir).Key("build", testTask, nil)
 	checkInputErr(t, err, wantErr)
 }
 
-func TestKeysIdenticalFileContent(t *testing.T) {
+func TestKeyIdenticalFileContent(t *testing.T) {
 	testDir := t.TempDir()
 
 	file, err := os.Create(filepath.Join(testDir, "main.go"))
@@ -272,7 +281,7 @@ func TestKeysIdenticalFileContent(t *testing.T) {
 	}
 }
 
-func TestKeysNewFile(t *testing.T) {
+func TestKeyNewFile(t *testing.T) {
 	testDir := makeTree(t)
 
 	spec := map[string]task.Task{
