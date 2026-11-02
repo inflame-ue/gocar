@@ -21,7 +21,6 @@ type Fingerprinter struct {
 func NewFingerprinter(dir string) *Fingerprinter {
 	return &Fingerprinter{
 		Dir:        dir,
-		fileHashes: make(map[string][]byte),
 	}
 }
 
@@ -29,6 +28,7 @@ func NewFingerprinter(dir string) *Fingerprinter {
 // all keys of every task in t.Deps, otherwise Key will return a DependencyError.
 func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string) (string, error) {
 	h := sha256.New()
+	fp.fileHashes = make(map[string][]byte)
 
 	writeField(h, []byte(t.Cmd))
 
