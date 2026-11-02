@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/inflame-ue/gocar/internal/fingerprint"
 	"github.com/inflame-ue/gocar/internal/graph"
@@ -44,30 +45,46 @@ func (e *Engine) Build(ctx context.Context, spec map[string]task.Task) error {
 		return err
 	}
 
+	// if no cache is specified for the build system,
+	// just execute the tasks in the topological order.
+	if e.Cache == nil {
+		for _, name := range order {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if err := e.Runner.RunTask(ctx, name, spec[name]); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	fp := fingerprint.NewFingerprinter(e.Dir)
 	keys := make(map[string]string)
 	for _, name := range order {
-		t := spec[name]
-
-		// always run the task, if it does not have outputs
-		// or no cache is specified for the build system.
-		// rationale: the task with no outptus has side-effects
-		if len(t.Outputs) == 0 || e.Cache == nil {
-			if err := e.Runner.RunTask(ctx, name, t); err != nil {
-				return err
-			}
-			continue
+		if err := ctx.Err(); err != nil {
+			return err
 		}
 
+		t := spec[name]
 		key, err := fp.Key(name, t, keys)
 		if err != nil {
 			return err
 		}
 		keys[name] = key
 
+		// always run the task, if it does not have outputs
+		// rationale: the task with no outptus has side-effects
+		if len(t.Outputs) == 0 {
+			if err := e.Runner.RunTask(ctx, name, t); err != nil {
+				return err
+			}
+			continue
+		}
+
 		hit, err := e.Cache.Get(key, e.Dir)
 		if err != nil {
-			return err
+			return fmt.Errorf("task %q, cache get: %w", name, err)
 		}
 
 		// we hit the cache, there is no reason to execute the task
@@ -81,7 +98,7 @@ func (e *Engine) Build(ctx context.Context, spec map[string]task.Task) error {
 		}
 
 		if err := e.Cache.Put(key, t.Outputs, e.Dir); err != nil {
-			return err
+			return fmt.Errorf("task %q, cache put: %w", name, err)
 		}
 	}
 
