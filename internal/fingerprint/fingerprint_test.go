@@ -1,7 +1,6 @@
 package fingerprint
 
 import (
-	"errors"
 	"maps"
 	"os"
 	"path/filepath"
@@ -9,37 +8,8 @@ import (
 	"time"
 
 	"github.com/inflame-ue/gocar/internal/task"
+	"github.com/inflame-ue/gocar/internal/testutil"
 )
-
-func checkInputErr(t *testing.T, got error, wantErr *InputError) {
-	t.Helper()
-
-	if got == nil && wantErr != nil {
-		t.Fatal("expected an err, got no err instead")
-	}
-
-	if got != nil && wantErr == nil {
-		t.Fatalf("expected no err, got %v instead", got)
-	}
-
-	if got == nil && wantErr == nil {
-		return
-	}
-
-	var ie *InputError
-
-	if ok := errors.As(got, &ie); !ok {
-		t.Errorf("expected err of type %T, got %T instead", wantErr, got)
-	}
-
-	if ie.Task != wantErr.Task {
-		t.Errorf("expected task %s, got %s instead", wantErr.Task, ie.Task)
-	}
-
-	if ie.Path != wantErr.Path {
-		t.Errorf("expected path %s, got %s instead", wantErr.Path, ie.Path)
-	}
-}
 
 func makeTree(t *testing.T) string {
 	t.Helper()
@@ -225,7 +195,15 @@ func TestKeysMissingFile(t *testing.T) {
 	}
 
 	_, err := NewFingerprinter(testDir).Keys(spec, order)
-	checkInputErr(t, err, wantErr)
+
+	tErr := testutil.CheckErrAs(t, err, wantErr)
+	if tErr.Task != wantErr.Task {
+		t.Errorf("expected task %s in error, got %s instead", wantErr.Task, tErr.Task)
+	}
+
+	if tErr.Path != wantErr.Path {
+		t.Errorf("expected path %s in error, got %s instead", wantErr.Path, tErr.Path)
+	}
 }
 
 func TestKeysIdenticalFileContent(t *testing.T) {
