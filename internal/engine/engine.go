@@ -24,13 +24,13 @@ type Engine struct {
 	Cache  Cache
 }
 
-// NewEngine returns a new Engine that builds the given spec in dir.
+// NewEngine returns a new [Engine] that builds the given spec in dir.
 //
-// dir is the project root and must match the directory the Runner is
+// dir is the project root and must match the directory the runner is
 // configured with; otherwise artifacts are written to an unexpected location.
 //
-// runner executes each task's command. If runner is nil, Build panics as soon
-// as a task needs to run (cache-only paths do not).
+// runner executes each task's command. If runner is nil, [Engine.Build]
+// panics as soon as a task needs to run (cache-only paths do not).
 //
 // cache stores and retrieves task outputs, local (L1) or remote (L2).
 // If cache is nil, every build is treated as a cold one.
@@ -87,7 +87,7 @@ func (e *Engine) Build(ctx context.Context, spec map[string]task.Task) error {
 		keys[name] = key
 
 		// always run the task, if it does not have outputs
-		// rationale: the task with no outptus has side-effects
+		// rationale: the task with no outputs has side-effects
 		if len(t.Outputs) == 0 {
 			if err := e.Runner.RunTask(ctx, name, t); err != nil {
 				return err
