@@ -32,7 +32,7 @@ func Run(ctx context.Context, spec map[string]task.Task, order []string, dir str
 }
 
 // Runner.Run orchestrates by using the order to extract tasks from the spec
-// and then delegates actual command execution.
+// and then delegates actual command execution to Runner.RunTask.
 func (r *Runner) Run(ctx context.Context, spec map[string]task.Task, order []string) error {
 	for _, name := range order {
 		t, ok := spec[name]
@@ -45,12 +45,21 @@ func (r *Runner) Run(ctx context.Context, spec map[string]task.Task, order []str
 		}
 
 		// delegate actual execution of the command
-		err := r.cmder.run(ctx, t.Cmd, r.Dir, r.Stdout, r.Stderr)
-		if err != nil {
-			return &TaskError{
-				Task: name,
-				Err:  err,
-			}
+		if err := r.RunTask(ctx, name, t); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *Runner) RunTask(ctx context.Context, name string, t task.Task) error {
+	err := r.cmder.run(ctx, t.Cmd, r.Dir, r.Stdout, r.Stderr)
+
+	if err != nil {
+		return &TaskError{
+			Task: name,
+			Err:  err,
 		}
 	}
 
