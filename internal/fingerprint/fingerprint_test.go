@@ -190,7 +190,14 @@ func TestKeyMissingFile(t *testing.T) {
 	}
 
 	_, err := NewFingerprinter(testDir).Key("build", testTask, nil)
-	checkInputErr(t, err, wantErr)
+	tErr := testutil.CheckErrAs(t, err, wantErr)
+	if tErr.Task != wantErr.Task {
+		t.Errorf("expected task %s in error, got %s instead", wantErr.Task, tErr.Task)
+	}
+
+	if tErr.Path != wantErr.Path {
+		t.Errorf("expected path %s in error, got %s instead", wantErr.Path, tErr.Path)
+	}
 }
 
 func TestKeyMissingDep(t *testing.T) {
@@ -200,24 +207,20 @@ func TestKeyMissingDep(t *testing.T) {
 		Cmd:  "go build main.go",
 		Deps: []string{"lint"},
 	}
-	_ = &DependencyError{
+	wantErr := &DependencyError{
 		Task: "build",
-		Dep:  "fix",
+		Dep:  "lint",
 	}
 
-	_, err := NewFingerprinter(testDir).Keys(spec, order)
-
+	_, err := NewFingerprinter(testDir).Key("build", testTask, map[string]string{"fix": "key"})
 	tErr := testutil.CheckErrAs(t, err, wantErr)
 	if tErr.Task != wantErr.Task {
 		t.Errorf("expected task %s in error, got %s instead", wantErr.Task, tErr.Task)
 	}
 
-	if tErr.Path != wantErr.Path {
-		t.Errorf("expected path %s in error, got %s instead", wantErr.Path, tErr.Path)
+	if tErr.Dep != wantErr.Dep {
+		t.Errorf("expected dep %s in error, got %s instead", wantErr.Dep, tErr.Dep)
 	}
-	_, _ = NewFingerprinter(testDir).Key("build", testTask, map[string]string{"fix": "key"})
-
-	t.Skip("dummy for now")
 }
 
 func TestKeyIdenticalFileContent(t *testing.T) {
