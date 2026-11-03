@@ -44,9 +44,6 @@ func NewEngine(dir string, runner Executor, cache Cache) *Engine {
 
 // Build is the orchestration method that builds the DAG, computes
 // the topological order, and handles the execution loop for each task.
-//
-// Note that if e.Cache is nil, then Build re-runs every task regardless
-// of whether it has changed or not (i.e., there is no notion of cold/warm builds).
 func (e *Engine) Build(ctx context.Context, spec map[string]task.Task) error {
 	g, err := graph.Build(spec)
 	if err != nil {
