@@ -24,6 +24,16 @@ type Engine struct {
 	Cache  Cache
 }
 
+// NewEngine returns a new Engine that builds the given spec in dir.
+//
+// dir is the project root and must match the directory the Runner is
+// configured with; otherwise artifacts are written to an unexpected location.
+//
+// runner executes each task's command. If runner is nil, Build panics as soon
+// as a task needs to run (cache-only paths do not).
+//
+// cache stores and retrieves task outputs, local (L1) or remote (L2).
+// If cache is nil, every build is treated as a cold one.
 func NewEngine(dir string, runner Executor, cache Cache) *Engine {
 	return &Engine{
 		Dir:    dir,
@@ -34,6 +44,9 @@ func NewEngine(dir string, runner Executor, cache Cache) *Engine {
 
 // Build is the orchestration method that builds the DAG, computes
 // the topological order, and handles the execution loop for each task.
+//
+// Note that if e.Cache is nil, then Build re-runs every task regardless
+// of whether it has changed or not (i.e., there is no notion of cold/warm builds).
 func (e *Engine) Build(ctx context.Context, spec map[string]task.Task) error {
 	g, err := graph.Build(spec)
 	if err != nil {
