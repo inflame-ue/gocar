@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"slices"
 	"testing"
@@ -18,14 +19,9 @@ func (fe *fakeExecutor) RunTask(ctx context.Context, name string, t task.Task) e
 	return nil
 }
 
-type put struct {
-	key     string
-	outputs []string
-}
-
 type fakeCache struct {
 	hit  bool
-	puts []put
+	puts []string
 }
 
 func (fc *fakeCache) Get(key, dir string) (bool, error) {
@@ -33,7 +29,7 @@ func (fc *fakeCache) Get(key, dir string) (bool, error) {
 }
 
 func (fc *fakeCache) Put(key string, outputs []string, dir string) error {
-	fc.puts = append(fc.puts, put{key: key, outputs: outputs})
+	fc.puts = append(fc.puts, outputs...)
 	return nil
 }
 
@@ -86,27 +82,26 @@ func assertRunsBeforeDeps(t *testing.T, ran []string, spec map[string]task.Task)
 func TestBuild_NilCacheRunsEverything(t *testing.T) {
 	dir, spec := t.TempDir(), testSpec()
 	ctx := context.Background()
-	ex := &fakeExecutor{ran: []string{}}
+	ex := &fakeExecutor{}
 
 	engine := NewEngine(dir, ex, nil)
 	if err := engine.Build(ctx, spec); err != nil {
 		t.Fatal(err)
 	}
+	assertRunsBeforeDeps(t, ex.ran, spec)
 
-	got, want := slices.Clone(ex.ran), slices.Sorted(maps.Keys(spec))
-	assertRunsBeforeDeps(t, got, spec)
-
-	slices.Sort(got)
-	if !slices.Equal(got, want) {
-		t.Errorf("expected %v to be executed, got %v instead", want, got)
+	ran, wantRan := slices.Clone(ex.ran), slices.Sorted(maps.Keys(spec))
+	slices.Sort(ran)
+	if !slices.Equal(ran, wantRan) {
+		t.Errorf("expected %v to be executed, got %v instead", wantRan, ran)
 	}
 }
 
 func TestBuild_CacheHitSkipExecution(t *testing.T) {
 	dir, spec := t.TempDir(), testSpec()
 	ctx := context.Background()
-	ex := &fakeExecutor{ran: []string{}}
-	cache := &fakeCache{hit: true, puts: []put{}}
+	ex := &fakeExecutor{}
+	cache := &fakeCache{hit: true}
 
 	engine := NewEngine(dir, ex, cache)
 	if err := engine.Build(ctx, spec); err != nil {
@@ -119,5 +114,45 @@ func TestBuild_CacheHitSkipExecution(t *testing.T) {
 
 	if len(cache.puts) != 0 {
 		t.Errorf("expected 0 puts to happen on cache hit, got %d instead", len(cache.puts))
+	}
+}
+
+func TestBuild_CacheMissTriggersPut(t *testing.T) {
+	dir, spec := t.TempDir(), testSpec()
+	ctx := context.Background()
+	ex := &fakeExecutor{}
+	cache := &fakeCache{hit: false}
+
+	engine := NewEngine(dir, ex, cache)
+	if err := engine.Build(ctx, spec); err != nil {
+		t.Fatal(err)
+	}
+
+	ran, wantRan := slices.Clone(ex.ran), slices.Sorted(maps.Keys(spec))
+	slices.Sort(ran)
+	if !slices.Equal(ran, wantRan) {
+		t.Errorf("expected %v to be executed, got %v instead", wantRan, ran)
+	}
+
+	puts, wantPuts := slices.Clone(cache.puts), []string{"a.txt", "b.txt", "c.txt"}
+	slices.Sort(puts)
+	if !slices.Equal(puts, wantPuts) {
+		t.Errorf("expected %v puts, got %v instead", wantPuts, puts)
+	}
+}
+
+func TestBuild_ContextCancelledBeforeBuild(t *testing.T) {
+	dir, spec := t.TempDir(), testSpec()
+	ctx, cancel := context.WithCancel(context.Background())
+	ex := &fakeExecutor{}
+	cache := &fakeCache{hit: true}
+
+	cancel()
+
+	engine := NewEngine(dir, ex, cache)
+	if err := engine.Build(ctx, spec); err != nil {
+		if !errors.Is(err, ctx.Err()) {
+			t.Errorf("expected Build to fail with context cancellation")
+		}
 	}
 }
