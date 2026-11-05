@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"slices"
+	"sync"
 	"testing"
 
 	"github.com/inflame-ue/gocar/internal/task"
@@ -12,16 +13,20 @@ import (
 
 type fakeExecutor struct {
 	ran []string
+	m   sync.RWMutex
 }
 
 func (fe *fakeExecutor) RunTask(ctx context.Context, name string, t task.Task) error {
+	fe.m.Lock()
 	fe.ran = append(fe.ran, name)
+	fe.m.Unlock()
 	return nil
 }
 
 type fakeCache struct {
 	hit  bool
 	puts []string
+	m    sync.RWMutex
 }
 
 func (fc *fakeCache) Get(key, dir string) (bool, error) {
@@ -29,7 +34,9 @@ func (fc *fakeCache) Get(key, dir string) (bool, error) {
 }
 
 func (fc *fakeCache) Put(key string, outputs []string, dir string) error {
+	fc.m.Lock()
 	fc.puts = append(fc.puts, outputs...)
+	fc.m.Unlock()
 	return nil
 }
 
@@ -150,9 +157,7 @@ func TestBuild_ContextCancelledBeforeBuild(t *testing.T) {
 	cancel()
 
 	engine := NewEngine(dir, ex, cache)
-	if err := engine.Build(ctx, spec); err != nil {
-		if !errors.Is(err, ctx.Err()) {
-			t.Errorf("expected Build to fail with context cancellation")
-		}
+	if err := engine.Build(ctx, spec); err == nil || !errors.Is(err, ctx.Err()) {
+		t.Errorf("expected Build to fail with context cancellation")
 	}
 }
