@@ -1,34 +1,10 @@
 package cache
 
 import (
-	"errors"
 	"testing"
+
+	"github.com/inflame-ue/gocar/internal/testutil"
 )
-
-func checkPathError(t *testing.T, got error, wantErr *PathError) {
-	t.Helper()
-
-	if got == nil && wantErr == nil {
-		return
-	}
-
-	if got != nil && wantErr == nil {
-		t.Fatalf("expected no err, got %v", got)
-	}
-
-	if got == nil && wantErr != nil {
-		t.Fatalf("expected an err, got no err")
-	}
-
-	var pe *PathError
-	if !errors.As(got, &pe) {
-		t.Fatalf("expected err type %T, got %T instead", wantErr, got)
-	}
-
-	if pe.Path != wantErr.Path {
-		t.Errorf("expected path %q, got %q instead", wantErr.Path, pe.Path)
-	}
-}
 
 func TestSafeStore(t *testing.T) {
 	testDir := t.TempDir()
@@ -71,7 +47,11 @@ func TestSafeStore(t *testing.T) {
 			t.Parallel()
 
 			path, err := safeStore(testDir, tc.path)
-			checkPathError(t, err, tc.wantErr)
+
+			tErr := testutil.CheckErrAs(t, err, tc.wantErr)
+			if tc.wantErr != nil && tErr.Path != tc.wantErr.Path {
+				t.Errorf("expected path %q, got %q instead", tc.wantErr.Path, tErr.Path)
+			}
 
 			if path != tc.wantPath {
 				t.Errorf("expected path %q, got %q instead", tc.path, path)
