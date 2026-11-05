@@ -358,3 +358,36 @@ func TestForget(t *testing.T) {
 		t.Errorf("expected memo to be empty, got %d entries instead", len(fp.fileHashes))
 	}
 }
+
+func TestForgetGlob(t *testing.T) {
+	testDir := makeTree(t)
+
+	fp := NewFingerprinter(testDir)
+	fp.fileHashes = map[string][]byte{
+		"src/main.go":          []byte("package main"),
+		"src/pkg/util.go":      []byte("package util"),
+		"src/pkg/util_test.go": []byte("package util_test"),
+		"src/cmd/cli/main.go":  []byte("package cli"),
+	}
+
+	fp.Forget("src/**/*.go")
+
+	if len(fp.fileHashes) != 0 {
+		t.Errorf("expected memo to be empty, got %d entries instead", len(fp.fileHashes))
+	}
+}
+
+func TestClear(t *testing.T) {
+	testDir := t.TempDir()
+
+	fp := NewFingerprinter(testDir)
+	fp.fileHashes = map[string][]byte{
+		"main.go": []byte("package main"),
+	}
+
+	fp.Clear()
+
+	if len(fp.fileHashes) != 0 {
+		t.Errorf("expected memo to be empty, got %d entries instead", len(fp.fileHashes))
+	}
+}
