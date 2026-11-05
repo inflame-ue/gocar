@@ -13,8 +13,9 @@ import (
 type Fingerprinter struct {
 	Dir string
 
-	// Reconstruct Fingerprinter to keep the file hashes scoped to per-build basis.
-	// Allows to see changes between files in-between builds.
+	// The file hashes are memoized on per-build basis.
+	// In other words, when a new Fingerprinter is contstructed,
+	// the memoization has to be re-done.
 	fileHashes map[string][]byte
 }
 
@@ -93,9 +94,13 @@ func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string
 
 // Forget removes the specified literal paths or glob patterns
 // from the hash map of memoized file content bytes.
+//
+// This primarily exists to handle the edge case, when a task
+// writes to an output file that another task down the execution graph
+// takes on input, which causes a stale memo.
 func (fp *Fingerprinter) Forget(patterns ...string) {
-	for _, pattern := range canonicalPaths(patterns) {
-		clear(fp.fileHashes[pattern])
+	for _, pattern := range patterns {
+		delete(fp.fileHashes, canonicalPath(pattern))
 
 		paths, err := glob.Expand(fp.Dir, pattern)
 		if err != nil {
@@ -105,7 +110,7 @@ func (fp *Fingerprinter) Forget(patterns ...string) {
 		}
 
 		for _, path := range paths {
-			clear(fp.fileHashes[path])
+			delete(fp.fileHashes, path)
 		}
 	}
 }
@@ -116,10 +121,14 @@ func (fp *Fingerprinter) Clear() {
 	clear(fp.fileHashes)
 }
 
+func canonicalPath(path string) string {
+	return filepath.ToSlash(filepath.Clean(path))
+}
+
 func canonicalPaths(paths []string) []string {
 	canonical := make([]string, 0, len(paths))
 	for _, path := range paths {
-		canonical = append(canonical, filepath.ToSlash(filepath.Clean(path)))
+		canonical = append(canonical, canonicalPath(path))
 	}
 
 	slices.Sort(canonical)
