@@ -91,6 +91,31 @@ func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// Forget removes the specified literal paths or glob patterns
+// from the hash map of memoized file content bytes.
+func (fp *Fingerprinter) Forget(patterns ...string) {
+	for _, pattern := range canonicalPaths(patterns) {
+		clear(fp.fileHashes[pattern])
+
+		paths, err := glob.Expand(fp.Dir, pattern)
+		if err != nil {
+			// ignore failed expansions, since it's a cache clean
+			// they are not important enough to warrant a build failure
+			continue
+		}
+
+		for _, path := range paths {
+			clear(fp.fileHashes[path])
+		}
+	}
+}
+
+// Clear completely empties the memoized map of file hashes,
+// forcing each hash for file content to be re-computed.
+func (fp *Fingerprinter) Clear() {
+	clear(fp.fileHashes)
+}
+
 func canonicalPaths(paths []string) []string {
 	canonical := make([]string, 0, len(paths))
 	for _, path := range paths {
