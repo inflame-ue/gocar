@@ -10,7 +10,7 @@ import (
 	"github.com/inflame-ue/gocar/internal/testutil"
 )
 
-func TestRunIntegration(t *testing.T) {
+func TestRunTask_Integration(t *testing.T) {
 	tests := map[string]struct {
 		name        string
 		task        task.Task

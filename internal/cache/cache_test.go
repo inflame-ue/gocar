@@ -39,7 +39,7 @@ func assertFile(t *testing.T, path, want string) {
 	}
 }
 
-func TestPutZeroOutputs(t *testing.T) {
+func TestPut_ZeroOutputs(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -60,7 +60,7 @@ func TestPutZeroOutputs(t *testing.T) {
 	}
 }
 
-func TestPutMultiOutputMirror(t *testing.T) {
+func TestPut_MultiOutputMirror(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -85,7 +85,7 @@ func TestPutMultiOutputMirror(t *testing.T) {
 	}
 }
 
-func TestPutDuplicate(t *testing.T) {
+func TestPut_Duplicate(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -109,7 +109,7 @@ func TestPutDuplicate(t *testing.T) {
 	assertFile(t, filepath.Join(root, key, files[0].rel), files[0].content)
 }
 
-func TestPutMissingSource(t *testing.T) {
+func TestPut_MissingSource(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -129,7 +129,7 @@ func TestPutMissingSource(t *testing.T) {
 	}
 }
 
-func TestPutEscapingOutput(t *testing.T) {
+func TestPut_EscapingOutput(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -145,7 +145,7 @@ func TestPutEscapingOutput(t *testing.T) {
 	}
 }
 
-func TestPutGetRoundTrip(t *testing.T) {
+func TestPut_GetRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -175,7 +175,7 @@ func TestPutGetRoundTrip(t *testing.T) {
 	assertFile(t, path, file.content)
 }
 
-func TestGetMiss(t *testing.T) {
+func TestGet_Miss(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -199,7 +199,7 @@ func TestGetMiss(t *testing.T) {
 	}
 }
 
-func TestPutGetEmptySentinel(t *testing.T) {
+func TestPutGet_EmptySentinel(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
