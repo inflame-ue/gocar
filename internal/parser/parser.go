@@ -7,6 +7,7 @@ import (
 	"io"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/inflame-ue/gocar/internal/task"
 	"go.yaml.in/yaml/v4"
@@ -59,6 +60,7 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 	var errs []error
 
 	// reminder: one error per-task
+nodeloop:
 	for name, node := range raw {
 		var task task.Task
 
@@ -88,6 +90,17 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 				Msg:   "cmd specification cannot be empty",
 			})
 			continue
+		}
+
+		for _, output := range task.Outputs {
+			if strings.ContainsAny(output, "*?[") {
+				errs = append(errs, &ValidationError{
+					Task:  name,
+					Field: "outputs",
+					Msg:   "outputs do not support glob expansion",
+				})
+				continue nodeloop
+			}
 		}
 
 		tasks[name] = task
