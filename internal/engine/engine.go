@@ -89,6 +89,7 @@ func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
 			if err := e.Runner.RunTask(ctx, name, t); err != nil {
 				return err
 			}
+			fp.Clear()
 			continue
 		}
 
@@ -99,6 +100,7 @@ func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
 
 		// we hit the cache, there is no reason to execute the task
 		if hit {
+			fp.Forget(t.Outputs...)
 			continue
 		}
 
@@ -107,6 +109,7 @@ func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
 			return err
 		}
 
+		fp.Forget(t.Outputs...)
 		if err := e.Cache.Put(key, t.Outputs, e.Dir); err != nil {
 			return fmt.Errorf("task %q, cache put: %w", name, err)
 		}
