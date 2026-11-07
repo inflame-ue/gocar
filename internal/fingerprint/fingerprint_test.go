@@ -69,7 +69,7 @@ func getKeys(t *testing.T, dir string, spec task.Tasks, order []string) map[stri
 	return keys
 }
 
-func TestKeyCmdChange(t *testing.T) {
+func TestKey_CmdChange(t *testing.T) {
 	testDir := t.TempDir()
 
 	testTask := task.Task{
@@ -87,7 +87,7 @@ func TestKeyCmdChange(t *testing.T) {
 	}
 }
 
-func TestKeyOuputs(t *testing.T) {
+func TestKey_Ouputs(t *testing.T) {
 	testDir := t.TempDir()
 
 	withoutOutputs := task.Task{
@@ -116,7 +116,7 @@ func TestKeyOuputs(t *testing.T) {
 	}
 }
 
-func TestKeyMTime(t *testing.T) {
+func TestKey_MTime(t *testing.T) {
 	testDir := t.TempDir()
 
 	file, err := os.Create(filepath.Join(testDir, "main.go"))
@@ -144,7 +144,7 @@ func TestKeyMTime(t *testing.T) {
 	}
 }
 
-func TestKeyFileContent(t *testing.T) {
+func TestKey_FileContent(t *testing.T) {
 	testDir := t.TempDir()
 
 	file, err := os.Create(filepath.Join(testDir, "main.go"))
@@ -177,7 +177,7 @@ func TestKeyFileContent(t *testing.T) {
 	}
 }
 
-func TestKeyMissingFile(t *testing.T) {
+func TestKey_MissingFile(t *testing.T) {
 	testDir := t.TempDir()
 
 	testTask := task.Task{
@@ -200,7 +200,7 @@ func TestKeyMissingFile(t *testing.T) {
 	}
 }
 
-func TestKeyMissingDep(t *testing.T) {
+func TestKey_MissingDep(t *testing.T) {
 	testDir := t.TempDir()
 
 	testTask := task.Task{
@@ -223,7 +223,7 @@ func TestKeyMissingDep(t *testing.T) {
 	}
 }
 
-func TestKeyIdenticalFileContent(t *testing.T) {
+func TestKey_IdenticalFileContent(t *testing.T) {
 	testDir := t.TempDir()
 
 	file, err := os.Create(filepath.Join(testDir, "main.go"))
@@ -267,7 +267,7 @@ func TestKeyIdenticalFileContent(t *testing.T) {
 	}
 }
 
-func TestKeyNewFile(t *testing.T) {
+func TestKey_NewFile(t *testing.T) {
 	testDir := makeTree(t)
 
 	spec := task.Tasks{
@@ -300,7 +300,7 @@ func TestKeyNewFile(t *testing.T) {
 	}
 }
 
-func TestKeyMerkleCascade(t *testing.T) {
+func TestKey_MerkleCascade(t *testing.T) {
 	testDir := makeTree(t)
 
 	err := os.WriteFile(filepath.Join(testDir, "src", "main.go"), []byte("package main\n"), 0o644)
@@ -359,7 +359,7 @@ func TestForget(t *testing.T) {
 	}
 }
 
-func TestForgetGlob(t *testing.T) {
+func TestForget_Glob(t *testing.T) {
 	testDir := makeTree(t)
 
 	fp := NewFingerprinter(testDir)
