@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"slices"
@@ -106,6 +107,12 @@ nodeloop:
 		tasks[name] = task
 	}
 
+	// the build system cannot support duplicate outputs,
+	// because of the potential write races and cache corruptions
+	if err := duplicateOutputs(tasks); err != nil {
+		errs = append(errs, err)
+	}
+
 	// map iteration is random in Go, and we want errs to be in the same order
 	// hence we sort on err.Task to ensure idempotency between runs if no changes happen
 	slices.SortFunc(errs, func(errA error, errB error) int {
@@ -117,4 +124,21 @@ nodeloop:
 	}
 
 	return tasks, nil
+}
+
+func duplicateOutputs(spec Tasks) error {
+	seen := make(map[string]bool)
+	for name, t := range spec {
+		for _, output := range t.Outputs {
+			if seen[output] {
+				return &ValidationError{
+					Task:  name,
+					Field: "outputs",
+					Msg:   fmt.Sprintf("output %q is a duplicate", output),
+				}
+			}
+			seen[output] = true
+		}
+	}
+	return nil
 }
