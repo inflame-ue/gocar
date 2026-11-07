@@ -1,0 +1,7 @@
+mkout:
+  cmd: mkdir out
+
+build:
+  cmd: "go build ."
+  deps: [mkout]
+  outputs: [out/*.txt]

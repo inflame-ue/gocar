@@ -1,5 +1,10 @@
 package task
 
+import (
+	"maps"
+	"slices"
+)
+
 // Task is the parsed representation of a single build task
 // that composes four different YAML fields from gocar.yaml.
 // Deps, Inputs, Outputs can be nil, if the corresponding YAML fields were omitted.
@@ -10,14 +15,21 @@ type Task struct {
 
 	// Deps is the slice of names of task on which this Task depends.
 	// They can be specified in any order.
-	// Non-nil empty when the task has no dependencies.
+	// Nil when the task has no dependencies.
 	Deps []string `yaml:"deps"`
 
 	// Inputs is the slice of input filenames necessary to execute Task.Cmd.
-	// Non-nil empty when Task.Cmd does not require input files.
+	// Nil when Task.Cmd does not require input files.
 	Inputs []string `yaml:"inputs"`
 
 	// Outputs is the slice of output filenames produced by execution of Task.Cmd.
-	// Non-nil empty when Task.Cmd does not produce artifacts.
+	// Each member of outputs can only be a regular file, not a directory or a symlink.
+	// Nil when Task.Cmd does not produce artifacts.
 	Outputs []string `yaml:"outputs"`
+}
+
+type Tasks map[string]Task
+
+func (ts Tasks) Names() []string {
+	return slices.Sorted(maps.Keys(ts))
 }

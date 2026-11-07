@@ -11,12 +11,12 @@ import (
 
 func TestBuild(t *testing.T) {
 	tests := map[string]struct {
-		spec    map[string]task.Task
+		spec    task.Tasks
 		want    *Graph
 		wantErr *MissingDepError
 	}{
 		"single node graph": {
-			spec: map[string]task.Task{
+			spec: task.Tasks{
 				"build": {
 					Cmd: "go build .",
 				},
@@ -35,7 +35,7 @@ func TestBuild(t *testing.T) {
 			wantErr: nil,
 		},
 		"valid linked list graph": {
-			spec: map[string]task.Task{
+			spec: task.Tasks{
 				"format": {
 					Cmd: "go fmt ./...",
 				},
@@ -61,7 +61,7 @@ func TestBuild(t *testing.T) {
 			wantErr: nil,
 		},
 		"valid diamond graph": {
-			spec: map[string]task.Task{
+			spec: task.Tasks{
 				"format": {
 					Cmd: "go fmt ./...",
 				},
@@ -100,7 +100,7 @@ func TestBuild(t *testing.T) {
 			},
 		},
 		"missing dep graph": {
-			spec: map[string]task.Task{
+			spec: task.Tasks{
 				"build": {
 					Cmd:  "go build ./...",
 					Deps: []string{"format"},
@@ -113,7 +113,7 @@ func TestBuild(t *testing.T) {
 			},
 		},
 		"duplicate deps graph": {
-			spec: map[string]task.Task{
+			spec: task.Tasks{
 				"format": {
 					Cmd: "go fmt ./...",
 				},

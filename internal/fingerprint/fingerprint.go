@@ -13,8 +13,9 @@ import (
 type Fingerprinter struct {
 	Dir string
 
-	// Reconstruct Fingerprinter to keep the file hashes scoped to per-build basis.
-	// Allows to see changes between files in-between builds.
+	// The file hashes are memoized on per-build basis.
+	// In other words, when a new Fingerprinter is contstructed,
+	// the memoization has to be re-done.
 	fileHashes map[string][]byte
 }
 
@@ -27,6 +28,9 @@ func NewFingerprinter(dir string) *Fingerprinter {
 
 // Key computes the fingerprint for a single task. The depKeys must contain
 // all keys of every task in t.Deps, otherwise Key will return a DependencyError.
+//
+// TODO: Key does not account for toolchains versions. Out of scope for the personal
+// COS project but could be implemented later, if there is time/desire.
 func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string) (string, error) {
 	h := sha256.New()
 
@@ -91,10 +95,43 @@ func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// Forget removes the specified literal paths or glob patterns
+// from the hash map of memoized file content bytes.
+//
+// This primarily exists to handle the edge case, when a task
+// writes to an output file that another task down the execution graph
+// takes on input, which causes a stale memo.
+func (fp *Fingerprinter) Forget(patterns ...string) {
+	for _, pattern := range patterns {
+		delete(fp.fileHashes, canonicalPath(pattern))
+
+		paths, err := glob.Expand(fp.Dir, pattern)
+		if err != nil {
+			// ignore failed expansions, since it's a cache clean
+			// they are not important enough to warrant a build failure
+			continue
+		}
+
+		for _, path := range paths {
+			delete(fp.fileHashes, path)
+		}
+	}
+}
+
+// Clear completely empties the memoized map of file hashes,
+// forcing each hash for file content to be re-computed.
+func (fp *Fingerprinter) Clear() {
+	clear(fp.fileHashes)
+}
+
+func canonicalPath(path string) string {
+	return filepath.ToSlash(filepath.Clean(path))
+}
+
 func canonicalPaths(paths []string) []string {
 	canonical := make([]string, 0, len(paths))
 	for _, path := range paths {
-		canonical = append(canonical, filepath.ToSlash(filepath.Clean(path)))
+		canonical = append(canonical, canonicalPath(path))
 	}
 
 	slices.Sort(canonical)
