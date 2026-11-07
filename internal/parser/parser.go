@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -15,10 +14,10 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-type Tasks map[string]task.Task
+type Tasks task.Tasks
 type rawTasks map[string]yaml.Node
 
-func Parse(data []byte) (Tasks, error) {
+func Parse(data []byte) (task.Tasks, error) {
 	raw, err := parseRawTasks(data)
 	if err != nil {
 		return nil, err
@@ -57,8 +56,8 @@ func parseRawTasks(data []byte) (rawTasks, error) {
 	return raw, nil
 }
 
-func parseTasks(raw rawTasks) (Tasks, error) {
-	var tasks = make(Tasks)
+func parseTasks(raw rawTasks) (task.Tasks, error) {
+	var tasks = make(task.Tasks)
 	var errs []error
 
 	// reminder: one error per-task
@@ -127,9 +126,9 @@ nodeloop:
 	return tasks, nil
 }
 
-func duplicateOutputs(spec Tasks) error {
+func duplicateOutputs(spec task.Tasks) error {
 	seen := make(map[string]bool)
-	names := slices.Sorted(maps.Keys(spec))
+	names := spec.Names()
 	for _, name := range names {
 		for _, output := range spec[name].Outputs {
 			if seen[output] {

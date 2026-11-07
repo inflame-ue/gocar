@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"maps"
 	"slices"
 
 	"github.com/inflame-ue/gocar/internal/task"
@@ -13,7 +12,7 @@ type Graph struct {
 	indeg map[string]int
 }
 
-func missingDep(spec map[string]task.Task, task string) (string, bool) {
+func missingDep(spec task.Tasks, task string) (string, bool) {
 	for _, dep := range spec[task].Deps {
 		if _, ok := spec[dep]; !ok {
 			return dep, true
@@ -23,14 +22,14 @@ func missingDep(spec map[string]task.Task, task string) (string, bool) {
 	return "", false
 }
 
-func Build(spec map[string]task.Task) (*Graph, error) {
+func Build(spec task.Tasks) (*Graph, error) {
 	graph := Graph{
 		deps:  map[string][]string{},
 		rdeps: map[string][]string{},
 		indeg: map[string]int{},
 	}
 
-	names := slices.Sorted(maps.Keys(spec))
+	names := spec.Names()
 
 	// pre-populate rdeps to not return nil-slice
 	for _, name := range names {
