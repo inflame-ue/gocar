@@ -23,7 +23,7 @@ func hashFile(dir, filename string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	fileHash := sha256.New()
 
