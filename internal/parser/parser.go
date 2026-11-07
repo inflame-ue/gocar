@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"cmp"
 	"errors"
+	"fmt"
 	"io"
+	"maps"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/inflame-ue/gocar/internal/task"
 	"go.yaml.in/yaml/v4"
@@ -59,6 +62,7 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 	var errs []error
 
 	// reminder: one error per-task
+nodeloop:
 	for name, node := range raw {
 		var task task.Task
 
@@ -90,7 +94,24 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 			continue
 		}
 
+		for _, output := range task.Outputs {
+			if strings.ContainsAny(output, "*?[") {
+				errs = append(errs, &ValidationError{
+					Task:  name,
+					Field: "outputs",
+					Msg:   "outputs do not support glob expansion",
+				})
+				continue nodeloop
+			}
+		}
+
 		tasks[name] = task
+	}
+
+	// the build system cannot support duplicate outputs,
+	// because of the potential write races and cache corruptions
+	if err := duplicateOutputs(tasks); err != nil {
+		errs = append(errs, err)
 	}
 
 	// map iteration is random in Go, and we want errs to be in the same order
@@ -104,4 +125,22 @@ func parseTasks(raw rawTasks) (Tasks, error) {
 	}
 
 	return tasks, nil
+}
+
+func duplicateOutputs(spec Tasks) error {
+	seen := make(map[string]bool)
+	names := slices.Sorted(maps.Keys(spec))
+	for _, name := range names {
+		for _, output := range spec[name].Outputs {
+			if seen[output] {
+				return &ValidationError{
+					Task:  name,
+					Field: "outputs",
+					Msg:   fmt.Sprintf("output %q is a duplicate", output),
+				}
+			}
+			seen[output] = true
+		}
+	}
+	return nil
 }

@@ -1,0 +1,7 @@
+mkout:
+  cmd: "cat 'out' > out"
+  outputs: [out]
+
+build:
+  cmd: "go build main.go -o out"
+  outputs: [out]
