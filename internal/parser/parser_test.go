@@ -34,11 +34,11 @@ func TestParse(t *testing.T) {
 	tests := map[string]struct {
 		filename string
 		wantErr  *wantError
-		want     Tasks
+		want     task.Tasks
 	}{
 		"valid YAML": {
 			filename: "gocar.yaml",
-			want: Tasks{
+			want: task.Tasks{
 				"mkout": task.Task{
 					Cmd: "mkdir out",
 				},

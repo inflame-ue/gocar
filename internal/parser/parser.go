@@ -14,7 +14,6 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-type Tasks task.Tasks
 type rawTasks map[string]yaml.Node
 
 func Parse(data []byte) (task.Tasks, error) {

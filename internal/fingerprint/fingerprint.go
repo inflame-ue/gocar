@@ -28,6 +28,9 @@ func NewFingerprinter(dir string) *Fingerprinter {
 
 // Key computes the fingerprint for a single task. The depKeys must contain
 // all keys of every task in t.Deps, otherwise Key will return a DependencyError.
+//
+// TODO: Key does not account for toolchains versions. Out of scope for the personal
+// COS project but could be implemented later, if there is time/desire.
 func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string) (string, error) {
 	h := sha256.New()
 

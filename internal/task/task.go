@@ -23,6 +23,7 @@ type Task struct {
 	Inputs []string `yaml:"inputs"`
 
 	// Outputs is the slice of output filenames produced by execution of Task.Cmd.
+	// Each member of outputs can only be a regular file, not a directory or a symlink.
 	// Nil when Task.Cmd does not produce artifacts.
 	Outputs []string `yaml:"outputs"`
 }
