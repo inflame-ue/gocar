@@ -12,38 +12,29 @@ import (
 
 func TestRunIntegration(t *testing.T) {
 	tests := map[string]struct {
-		spec        map[string]task.Task
-		order       []string
+		name        string
+		task        task.Task
 		outputFile  string
 		wantContent string
 		wantErr     *TaskError
 	}{
 		"valid task": {
-			spec: map[string]task.Task{
-				"alpha": {
-					Cmd: "printf 'alpha' >> a.txt",
-				},
-				"beta": {
-					Cmd: "printf 'beta' >> a.txt",
-				},
+			name: "alpha",
+			task: task.Task{
+				Cmd:     "printf 'alpha' >> a.txt",
+				Outputs: []string{"a.txt"},
 			},
-			order:       []string{"alpha", "beta"},
 			outputFile:  "a.txt",
-			wantContent: "alphabeta",
-			wantErr:     nil,
+			wantContent: "alpha",
 		},
 		"failling task": {
-			spec: map[string]task.Task{
-				"alpha": {
-					Cmd: "printf 'alpha' >> a.txt",
-				},
-				"beta": {
-					Cmd: "cat b.txt",
-				},
+			name: "alpha",
+			task: task.Task{
+				Cmd:    "cat a.txt",
+				Inputs: []string{"a.txt"},
 			},
-			order: []string{"alpha", "beta"},
 			wantErr: &TaskError{
-				Task: "beta",
+				Task: "alpha",
 			},
 		},
 	}
@@ -53,7 +44,7 @@ func TestRunIntegration(t *testing.T) {
 			t.Parallel()
 
 			ctx, dir := context.Background(), t.TempDir()
-			err := Run(ctx, tc.spec, tc.order, dir)
+			err := Run(ctx, tc.name, tc.task, dir)
 
 			tErr := testutil.CheckErrAs(t, err, tc.wantErr)
 			if tc.wantErr != nil && tErr.Task != tc.wantErr.Task {

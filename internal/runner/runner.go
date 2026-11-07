@@ -2,7 +2,6 @@ package runner
 
 import (
 	"context"
-	"errors"
 	"io"
 	"os"
 
@@ -25,34 +24,14 @@ func NewRunner(stdout io.Writer, stderr io.Writer, dir string) *Runner {
 	}
 }
 
-// Run provides a common use-case for the Runner.Run method, where
+// Run provides a common use-case for the Runner.RunTask method, where
 // stdout is os.Stdout and stderr is os.Stderr.
-func Run(ctx context.Context, spec map[string]task.Task, order []string, dir string) error {
-	return NewRunner(os.Stdout, os.Stderr, dir).Run(ctx, spec, order)
+func Run(ctx context.Context, name string, t task.Task, dir string) error {
+	return NewRunner(os.Stdout, os.Stderr, dir).RunTask(ctx, name, t)
 }
 
-// Runner.Run orchestrates by using the order to extract tasks from the spec
-// and then delegates actual command execution to Runner.RunTask.
-func (r *Runner) Run(ctx context.Context, spec map[string]task.Task, order []string) error {
-	for _, name := range order {
-		t, ok := spec[name]
-
-		if !ok {
-			return &TaskError{
-				Task: name,
-				Err:  errors.New("task name does not exist in spec"),
-			}
-		}
-
-		// delegate actual execution of the command
-		if err := r.RunTask(ctx, name, t); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
+// RunTask performs a given task through the commander interface.
+// Retursn a TaskError in case of an execution error.
 func (r *Runner) RunTask(ctx context.Context, name string, t task.Task) error {
 	err := r.cmder.run(ctx, t.Cmd, r.Dir, r.Stdout, r.Stderr)
 
