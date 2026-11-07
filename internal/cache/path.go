@@ -47,24 +47,35 @@ func safeJoin(root, path string) (string, error) {
 func copyFile(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
-		return &IOError{
-			Path:  src,
-			Cause: err,
-		}
+		return &IOError{Path: src, Cause: err}
 	}
 	defer srcFile.Close()
 
 	dstFile, err := os.Create(dst)
 	if err != nil {
-		return &IOError{
-			Path:  dst,
-			Cause: err,
-		}
+		return &IOError{Path: dst, Cause: err}
 	}
 	defer dstFile.Close()
 
 	if _, err = io.Copy(dstFile, srcFile); err != nil {
 		return &IOError{Path: dst, Cause: err}
 	}
+
+	// make sure metadata is saved to disk
+	if err := dstFile.Sync(); err != nil {
+		return &IOError{Path: dst, Cause: err}
+	}
+
+	info, err := os.Stat(src)
+	if err != nil {
+		return &IOError{Path: src, Cause: err}
+	}
+
+	// preserve original file permissions
+	// essential for something like an .exe file
+	if err := os.Chmod(dst, info.Mode().Perm()); err != nil {
+		return &IOError{Path: dst, Cause: err}
+	}
+
 	return nil
 }
