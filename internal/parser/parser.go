@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -128,8 +129,9 @@ nodeloop:
 
 func duplicateOutputs(spec Tasks) error {
 	seen := make(map[string]bool)
-	for name, t := range spec {
-		for _, output := range t.Outputs {
+	names := slices.Sorted(maps.Keys(spec))
+	for _, name := range names {
+		for _, output := range spec[name].Outputs {
 			if seen[output] {
 				return &ValidationError{
 					Task:  name,

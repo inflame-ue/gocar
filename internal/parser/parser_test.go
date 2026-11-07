@@ -131,6 +131,22 @@ func TestParse(t *testing.T) {
 				task: "build",
 			},
 		},
+		"globs in outputs": {
+			filename: "glob.yaml",
+			wantErr: &wantError{
+				as:    &ValidationError{},
+				task:  "build",
+				field: "outputs",
+			},
+		},
+		"duplicate outputs": {
+			filename: "duplicateout.yaml",
+			wantErr: &wantError{
+				as:    &ValidationError{},
+				task:  "mkout",
+				field: "outputs",
+			},
+		},
 	}
 
 	for name, tc := range tests {
