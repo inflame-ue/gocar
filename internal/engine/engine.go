@@ -44,7 +44,7 @@ func NewEngine(dir string, runner Executor, cache Cache) *Engine {
 
 // Build is the orchestration method that builds the DAG, computes
 // the topological order, and handles the execution loop for each task.
-func (e *Engine) Build(ctx context.Context, spec map[string]task.Task) error {
+func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
 	g, err := graph.Build(spec)
 	if err != nil {
 		return err

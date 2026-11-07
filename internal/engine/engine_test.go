@@ -40,8 +40,8 @@ func (fc *fakeCache) Put(key string, outputs []string, dir string) error {
 	return nil
 }
 
-func testSpec() map[string]task.Task {
-	return map[string]task.Task{
+func testSpec() task.Tasks {
+	return task.Tasks{
 		"A": {
 			Cmd:     "echo 'a' > a.txt",
 			Outputs: []string{"a.txt"},
@@ -62,7 +62,7 @@ func testSpec() map[string]task.Task {
 	}
 }
 
-func assertRunsBeforeDeps(t *testing.T, ran []string, spec map[string]task.Task) {
+func assertRunsBeforeDeps(t *testing.T, ran []string, spec task.Tasks) {
 	t.Helper()
 
 	indices := make(map[string][]int)
