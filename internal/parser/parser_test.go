@@ -40,7 +40,7 @@ func TestParse(t *testing.T) {
 			filename: "gocar.yaml",
 			want: task.Tasks{
 				"mkout": task.Task{
-					Cmd: "mkdir out",
+					Cmd: "mkdir -p out",
 				},
 				"alpha": task.Task{
 					Cmd:     `echo 'alpha\n' > out/a.txt`,

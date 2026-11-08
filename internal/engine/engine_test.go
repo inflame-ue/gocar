@@ -139,6 +139,8 @@ func assertRanExactly(t *testing.T, got, want []string) {
 }
 
 func TestBuild_NilCacheRunsEverything(t *testing.T) {
+	t.Parallel()
+
 	dir, spec := t.TempDir(), testSpec()
 	ex := &fakeExecutor{}
 
@@ -150,6 +152,8 @@ func TestBuild_NilCacheRunsEverything(t *testing.T) {
 }
 
 func TestBuild_CacheHitSkipExecution(t *testing.T) {
+	t.Parallel()
+
 	dir, spec := t.TempDir(), testSpec()
 	ex := &fakeExecutor{}
 	cache := &fakeCache{hit: true}
@@ -171,6 +175,8 @@ func TestBuild_CacheHitSkipExecution(t *testing.T) {
 }
 
 func TestBuild_CacheMissTriggersPut(t *testing.T) {
+	t.Parallel()
+
 	dir, spec := t.TempDir(), testSpec()
 	ex := &fakeExecutor{}
 	cache := &fakeCache{}
@@ -189,6 +195,8 @@ func TestBuild_CacheMissTriggersPut(t *testing.T) {
 }
 
 func TestBuild_ExecutorFailureStopsBuild(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	spec := task.Tasks{
 		"A": {Cmd: "a", Outputs: []string{"a.txt"}},
@@ -220,6 +228,8 @@ func TestBuild_ExecutorFailureStopsBuild(t *testing.T) {
 }
 
 func TestBuild_ContextCancelledBeforeBuild(t *testing.T) {
+	t.Parallel()
+
 	dir, spec := t.TempDir(), testSpec()
 	ctx, cancel := context.WithCancel(context.Background())
 	ex := &fakeExecutor{}
@@ -238,6 +248,8 @@ func TestBuild_ContextCancelledBeforeBuild(t *testing.T) {
 }
 
 func TestBuild_ContextCancelledDuringBuild(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	spec := task.Tasks{
 		"A": {Cmd: "a", Outputs: []string{"a.txt"}},
