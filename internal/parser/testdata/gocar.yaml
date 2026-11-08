@@ -1,5 +1,5 @@
 mkout:
-  cmd: mkdir out
+  cmd: mkdir -p out
 
 alpha:
   cmd: echo 'alpha\n' > out/a.txt
