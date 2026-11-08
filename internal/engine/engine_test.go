@@ -3,41 +3,70 @@ package engine
 import (
 	"context"
 	"errors"
-	"maps"
 	"slices"
 	"sync"
 	"testing"
 
 	"github.com/inflame-ue/gocar/internal/task"
+	"github.com/inflame-ue/gocar/internal/testutil"
 )
 
 type fakeExecutor struct {
-	ran []string
-	m   sync.RWMutex
+	mu    sync.Mutex
+	ran   []string
+	onRun func(ctx context.Context, name string, t task.Task) error
 }
 
 func (fe *fakeExecutor) RunTask(ctx context.Context, name string, t task.Task) error {
-	fe.m.Lock()
+	fe.mu.Lock()
 	fe.ran = append(fe.ran, name)
-	fe.m.Unlock()
+	fe.mu.Unlock()
+
+	if fe.onRun != nil {
+		return fe.onRun(ctx, name, t)
+	}
 	return nil
 }
 
+func (fe *fakeExecutor) ranNames() []string {
+	fe.mu.Lock()
+	defer fe.mu.Unlock()
+	return slices.Clone(fe.ran)
+}
+
 type fakeCache struct {
+	mu   sync.Mutex
 	hit  bool
+	gets []string
 	puts []string
-	m    sync.RWMutex
 }
 
 func (fc *fakeCache) Get(key, dir string) (bool, error) {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+
+	fc.gets = append(fc.gets, key)
 	return fc.hit, nil
 }
 
 func (fc *fakeCache) Put(key string, outputs []string, dir string) error {
-	fc.m.Lock()
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+
 	fc.puts = append(fc.puts, outputs...)
-	fc.m.Unlock()
 	return nil
+}
+
+func (fc *fakeCache) getKeys() []string {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	return slices.Clone(fc.gets)
+}
+
+func (fc *fakeCache) putOutputs() []string {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	return slices.Clone(fc.puts)
 }
 
 func testSpec() task.Tasks {
@@ -86,65 +115,107 @@ func assertRunsBeforeDeps(t *testing.T, ran []string, spec task.Tasks) {
 	}
 }
 
+func assertRanExactly(t *testing.T, got, want []string) {
+	t.Helper()
+
+	got = slices.Clone(got)
+	want = slices.Clone(want)
+
+	seen := make(map[string]int, len(got))
+	for _, name := range got {
+		seen[name]++
+	}
+	for name, n := range seen {
+		if n > 1 {
+			t.Errorf("task %q executed %d times", name, n)
+		}
+	}
+
+	slices.Sort(got)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Errorf("expected %v to be executed, got %v instead", want, got)
+	}
+}
+
 func TestBuild_NilCacheRunsEverything(t *testing.T) {
 	dir, spec := t.TempDir(), testSpec()
-	ctx := context.Background()
 	ex := &fakeExecutor{}
 
 	engine := NewEngine(dir, ex, nil)
-	if err := engine.Build(ctx, spec); err != nil {
-		t.Fatal(err)
-	}
-	assertRunsBeforeDeps(t, ex.ran, spec)
+	testutil.CheckNoErr(t, engine.Build(context.Background(), spec))
 
-	ran, wantRan := slices.Clone(ex.ran), slices.Sorted(maps.Keys(spec))
-	slices.Sort(ran)
-	if !slices.Equal(ran, wantRan) {
-		t.Errorf("expected %v to be executed, got %v instead", wantRan, ran)
-	}
+	assertRanExactly(t, ex.ranNames(), spec.Names())
+	assertRunsBeforeDeps(t, ex.ranNames(), spec)
 }
 
 func TestBuild_CacheHitSkipExecution(t *testing.T) {
 	dir, spec := t.TempDir(), testSpec()
-	ctx := context.Background()
 	ex := &fakeExecutor{}
 	cache := &fakeCache{hit: true}
 
 	engine := NewEngine(dir, ex, cache)
-	if err := engine.Build(ctx, spec); err != nil {
-		t.Fatal(err)
+	testutil.CheckNoErr(t, engine.Build(context.Background(), spec))
+
+	if !slices.Equal(ex.ranNames(), []string{"D"}) {
+		t.Errorf("expected only the no-outputs task D to run, got %v", ex.ranNames())
 	}
 
-	if !slices.Equal(ex.ran, []string{"D"}) {
-		t.Errorf("expected only the no-outputs task D to run, instead %v ran", ex.ran)
+	if got := cache.putOutputs(); len(got) != 0 {
+		t.Errorf("expected 0 puts on cache hit, got %v", got)
 	}
 
-	if len(cache.puts) != 0 {
-		t.Errorf("expected 0 puts to happen on cache hit, got %d instead", len(cache.puts))
+	if got := len(cache.getKeys()); got != 3 {
+		t.Errorf("expected 3 cache Get calls (A, B, C), got %d", got)
 	}
 }
 
 func TestBuild_CacheMissTriggersPut(t *testing.T) {
 	dir, spec := t.TempDir(), testSpec()
-	ctx := context.Background()
 	ex := &fakeExecutor{}
-	cache := &fakeCache{hit: false}
+	cache := &fakeCache{}
 
 	engine := NewEngine(dir, ex, cache)
-	if err := engine.Build(ctx, spec); err != nil {
-		t.Fatal(err)
-	}
+	testutil.CheckNoErr(t, engine.Build(context.Background(), spec))
 
-	ran, wantRan := slices.Clone(ex.ran), slices.Sorted(maps.Keys(spec))
-	slices.Sort(ran)
-	if !slices.Equal(ran, wantRan) {
-		t.Errorf("expected %v to be executed, got %v instead", wantRan, ran)
-	}
+	assertRanExactly(t, ex.ranNames(), spec.Names())
+	assertRunsBeforeDeps(t, ex.ranNames(), spec)
 
-	puts, wantPuts := slices.Clone(cache.puts), []string{"a.txt", "b.txt", "c.txt"}
+	puts := cache.putOutputs()
 	slices.Sort(puts)
-	if !slices.Equal(puts, wantPuts) {
-		t.Errorf("expected %v puts, got %v instead", wantPuts, puts)
+	if !slices.Equal(puts, []string{"a.txt", "b.txt", "c.txt"}) {
+		t.Errorf("expected [a.txt b.txt c.txt] to be cached, got %v instead", puts)
+	}
+}
+
+func TestBuild_ExecutorFailureStopsBuild(t *testing.T) {
+	dir := t.TempDir()
+	spec := task.Tasks{
+		"A": {Cmd: "a", Outputs: []string{"a.txt"}},
+		"B": {Cmd: "b", Deps: []string{"A"}, Outputs: []string{"b.txt"}},
+		"C": {Cmd: "c", Deps: []string{"B"}, Outputs: []string{"c.txt"}},
+	}
+	errBoom := errors.New("boom")
+
+	ex := &fakeExecutor{onRun: func(ctx context.Context, name string, t task.Task) error {
+		if name == "B" {
+			return errBoom
+		}
+		return nil
+	}}
+	cache := &fakeCache{}
+
+	engine := NewEngine(dir, ex, cache)
+	err := engine.Build(context.Background(), spec)
+	if !errors.Is(err, errBoom) {
+		t.Fatalf("expected executor error, got %v", err)
+	}
+
+	if !slices.Equal(ex.ranNames(), []string{"A", "B"}) {
+		t.Errorf("expected A and B to run before failure, got %v", ex.ranNames())
+	}
+	if got := cache.putOutputs(); len(got) != 1 {
+		t.Errorf("expected 1 put (A) before failure, got %v", got)
 	}
 }
 
@@ -157,7 +228,37 @@ func TestBuild_ContextCancelledBeforeBuild(t *testing.T) {
 	cancel()
 
 	engine := NewEngine(dir, ex, cache)
-	if err := engine.Build(ctx, spec); err == nil || !errors.Is(err, ctx.Err()) {
-		t.Errorf("expected Build to fail with context cancellation")
+	err := engine.Build(ctx, spec)
+	if err == nil || !errors.Is(err, ctx.Err()) {
+		t.Errorf("expected Build to fail with context cancellation, got %v", err)
+	}
+	if got := ex.ranNames(); len(got) != 0 {
+		t.Errorf("expected no tasks to run, got %v", got)
+	}
+}
+
+func TestBuild_ContextCancelledDuringBuild(t *testing.T) {
+	dir := t.TempDir()
+	spec := task.Tasks{
+		"A": {Cmd: "a", Outputs: []string{"a.txt"}},
+		"B": {Cmd: "b", Deps: []string{"A"}, Outputs: []string{"b.txt"}},
+		"C": {Cmd: "c", Deps: []string{"B"}, Outputs: []string{"c.txt"}},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	ex := &fakeExecutor{onRun: func(ctx context.Context, name string, t task.Task) error {
+		if name == "A" {
+			cancel()
+		}
+		return nil
+	}}
+
+	engine := NewEngine(dir, ex, nil)
+	err := engine.Build(ctx, spec)
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Errorf("expected Build to fail with context cancellation, got %v", err)
+	}
+	if !slices.Equal(ex.ranNames(), []string{"A"}) {
+		t.Errorf("expected only A to run before cancellation, got %v", ex.ranNames())
 	}
 }
