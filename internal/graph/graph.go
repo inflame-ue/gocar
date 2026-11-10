@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"maps"
 	"slices"
 
 	"github.com/inflame-ue/gocar/internal/task"
@@ -10,6 +11,18 @@ type Graph struct {
 	deps  map[string][]string
 	rdeps map[string][]string
 	indeg map[string]int
+}
+
+func (g *Graph) Nodes() []string {
+	return slices.Sorted(maps.Keys(g.deps))
+}
+
+func (g *Graph) Deps(node string) []string {
+	return slices.Clone(g.deps[node])
+}
+
+func (g *Graph) Rdeps(node string) []string {
+	return slices.Clone(g.rdeps[node])
 }
 
 func missingDep(spec task.Tasks, task string) (string, bool) {
