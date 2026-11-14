@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"runtime"
 
 	"github.com/inflame-ue/gocar/internal/fingerprint"
 	"github.com/inflame-ue/gocar/internal/graph"
@@ -22,6 +23,7 @@ type Engine struct {
 	Dir    string
 	Runner Executor
 	Cache  Cache
+	Jobs   int
 }
 
 // NewEngine returns a new [Engine] that builds the given spec in dir.
@@ -40,6 +42,13 @@ func NewEngine(dir string, runner Executor, cache Cache) *Engine {
 		Runner: runner,
 		Cache:  cache,
 	}
+}
+
+func (e *Engine) jobs() int {
+	if e.Jobs < 0 {
+		return runtime.NumCPU()
+	}
+	return e.Jobs
 }
 
 // Build is the orchestration method that builds the DAG, computes
