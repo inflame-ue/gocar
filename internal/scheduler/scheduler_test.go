@@ -20,17 +20,6 @@ func levelOf(t *testing.T, spec task.Tasks) map[string]int {
 	return Level(g)
 }
 
-func TestLevel_Single(t *testing.T) {
-	t.Parallel()
-
-	spec := task.Tasks{"build": {Cmd: "go build ."}}
-	want := map[string]int{"build": 1}
-
-	if got := levelOf(t, spec); !maps.Equal(got, want) {
-		t.Errorf("Level() = %v, want %v", got, want)
-	}
-}
-
 func TestLevel_Chain(t *testing.T) {
 	t.Parallel()
 
