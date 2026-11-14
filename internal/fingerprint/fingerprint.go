@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"path/filepath"
 	"slices"
+	"sync"
 
 	"github.com/inflame-ue/gocar/internal/glob"
 	"github.com/inflame-ue/gocar/internal/task"
@@ -17,6 +18,7 @@ type Fingerprinter struct {
 	// In other words, when a new Fingerprinter is contstructed,
 	// the memoization has to be re-done.
 	fileHashes map[string][]byte
+	mu         sync.Mutex
 }
 
 func NewFingerprinter(dir string) *Fingerprinter {
@@ -32,6 +34,9 @@ func NewFingerprinter(dir string) *Fingerprinter {
 // TODO: Key does not account for toolchains versions. Out of scope for the personal
 // COS project but could be implemented later, if there is time/desire.
 func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string) (string, error) {
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
+
 	h := sha256.New()
 
 	if fp.fileHashes == nil {
@@ -102,6 +107,9 @@ func (fp *Fingerprinter) Key(name string, t task.Task, depKeys map[string]string
 // writes to an output file that another task down the execution graph
 // takes on input, which causes a stale memo.
 func (fp *Fingerprinter) Forget(patterns ...string) {
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
+
 	for _, pattern := range patterns {
 		delete(fp.fileHashes, canonicalPath(pattern))
 
@@ -121,6 +129,9 @@ func (fp *Fingerprinter) Forget(patterns ...string) {
 // Clear completely empties the memoized map of file hashes,
 // forcing each hash for file content to be re-computed.
 func (fp *Fingerprinter) Clear() {
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
+
 	clear(fp.fileHashes)
 }
 
