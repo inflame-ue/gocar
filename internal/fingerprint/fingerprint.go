@@ -14,11 +14,15 @@ import (
 type Fingerprinter struct {
 	Dir string
 
+	// the lock is coarse-grained, can potentially
+	// be adopted to be more fine-graiend for better
+	// performance on fingerprinting.
+	mu sync.Mutex
+
 	// The file hashes are memoized on per-build basis.
 	// In other words, when a new Fingerprinter is contstructed,
 	// the memoization has to be re-done.
 	fileHashes map[string][]byte
-	mu         sync.Mutex
 }
 
 func NewFingerprinter(dir string) *Fingerprinter {
