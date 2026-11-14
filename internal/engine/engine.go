@@ -55,65 +55,70 @@ func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
 		return err
 	}
 
-	// if no cache is specified for the build system,
-	// just execute the tasks in the topological order.
-	if e.Cache == nil {
-		for _, name := range order {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			if err := e.Runner.RunTask(ctx, name, spec[name]); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
 	fp := fingerprint.NewFingerprinter(e.Dir)
 	keys := make(map[string]string)
+
 	for _, name := range order {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		t := spec[name]
-		key, err := fp.Key(name, t, keys)
+		key, err := e.runOne(ctx, name, spec[name], keys, fp)
 		if err != nil {
 			return err
 		}
 		keys[name] = key
-
-		// always run the task, if it does not have outputs
-		// rationale: the task with no outputs has side-effects
-		if len(t.Outputs) == 0 {
-			if err := e.Runner.RunTask(ctx, name, t); err != nil {
-				return err
-			}
-			fp.Clear()
-			continue
-		}
-
-		hit, err := e.Cache.Get(key, e.Dir)
-		if err != nil {
-			return fmt.Errorf("task %q, cache get: %w", name, err)
-		}
-
-		// we hit the cache, there is no reason to execute the task
-		if hit {
-			fp.Forget(t.Outputs...)
-			continue
-		}
-
-		// otherwise run the task and put the key --> outputs to e.Cache
-		if err := e.Runner.RunTask(ctx, name, t); err != nil {
-			return err
-		}
-
-		fp.Forget(t.Outputs...)
-		if err := e.Cache.Put(key, t.Outputs, e.Dir); err != nil {
-			return fmt.Errorf("task %q, cache put: %w", name, err)
-		}
 	}
 
 	return nil
+}
+
+// runOne processes a single task. It returns the task's key
+// so that dependents can compute their own keys.
+func (e *Engine) runOne(ctx context.Context, name string, t task.Task,
+	depKeys map[string]string, fp *fingerprint.Fingerprinter) (string, error) {
+
+	// with no cache there is nothing to fingerprint or restore,
+	// so just execute the task.
+	if e.Cache == nil {
+		return "", e.Runner.RunTask(ctx, name, t)
+	}
+
+	key, err := fp.Key(name, t, depKeys)
+	if err != nil {
+		return "", err
+	}
+
+	// always run the task, if it does not have outputs
+	// rationale: the task with no outputs has side-effects
+	if len(t.Outputs) == 0 {
+		if err := e.Runner.RunTask(ctx, name, t); err != nil {
+			return "", err
+		}
+		fp.Clear()
+		return key, nil
+	}
+
+	hit, err := e.Cache.Get(key, e.Dir)
+	if err != nil {
+		return "", fmt.Errorf("task %q, cache get: %w", name, err)
+	}
+
+	// we hit the cache, there is no reason to execute the task
+	if hit {
+		fp.Forget(t.Outputs...)
+		return key, nil
+	}
+
+	// otherwise run the task and put the key --> outputs to e.Cache
+	if err := e.Runner.RunTask(ctx, name, t); err != nil {
+		return "", err
+	}
+
+	fp.Forget(t.Outputs...)
+	if err := e.Cache.Put(key, t.Outputs, e.Dir); err != nil {
+		return "", fmt.Errorf("task %q, cache put: %w", name, err)
+	}
+
+	return key, nil
 }
