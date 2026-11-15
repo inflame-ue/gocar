@@ -74,6 +74,24 @@ func (e *Engine) worker(ctx context.Context, spec task.Tasks, fp *fingerprint.Fi
 	for {
 		p.mu.Lock()
 
+		for p.ready.Len() == 0 && p.running > 0 && p.err == nil && ctx.Err() == nil {
+			p.cond.Wait()
+		}
+
+		if p.err != nil {
+			p.mu.Unlock()
+			return
+		}
+
+		if ctx.Err() != nil {
+			if p.err == nil {
+				p.err = ctx.Err()
+			}
+			p.cond.Broadcast()
+			p.mu.Unlock()
+			return
+		}
+
 		if p.ready.Len() == 0 {
 			p.mu.Unlock()
 			return
