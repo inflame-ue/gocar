@@ -46,12 +46,10 @@ func (e *Engine) run(ctx context.Context, spec task.Tasks, g *graph.Graph) error
 
 	// signal context cancellation to all workers
 	go func() {
-		go func() {
-			<-ctx.Done()
-			p.mu.Lock()
-			p.cond.Broadcast()
-			p.mu.Unlock()
-		}()
+		<-ctx.Done()
+		p.mu.Lock()
+		p.cond.Broadcast()
+		p.mu.Unlock()
 	}()
 
 	fp := fingerprint.NewFingerprinter(e.Dir)
