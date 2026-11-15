@@ -23,7 +23,7 @@ type pool struct {
 	cond *sync.Cond
 }
 
-// run orchestrates the worker pool of task execution. It construct a new
+// run orchestrates the worker pool of task execution. It constructs a new
 // goroutine pool, handles in-flight context cancellation, runs each worker.
 func (e *Engine) run(ctx context.Context, spec task.Tasks, g *graph.Graph) error {
 	p := &pool{
@@ -46,23 +46,23 @@ func (e *Engine) run(ctx context.Context, spec task.Tasks, g *graph.Graph) error
 
 	// signal context cancellation to all workers
 	go func() {
-		<-ctx.Done()
-		p.mu.Lock()
-		if p.err == nil {
-			p.err = ctx.Err()
-		}
-		p.cond.Broadcast()
-		p.mu.Unlock()
+		go func() {
+			<-ctx.Done()
+			p.mu.Lock()
+			p.cond.Broadcast()
+			p.mu.Unlock()
+		}()
 	}()
 
 	fp := fingerprint.NewFingerprinter(e.Dir)
 
 	var wg sync.WaitGroup
-	for i := 0; i < e.jobs(); i++ {
+	jobs := e.jobs()
+	for i := 0; i < jobs; i++ {
 		wg.Add(1)
 		go func() {
-			e.worker(ctx, spec, fp, p)
 			defer wg.Done()
+			e.worker(ctx, spec, fp, p)
 		}()
 	}
 	wg.Wait()

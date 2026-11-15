@@ -58,6 +58,11 @@ func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
 	if err != nil {
 		return err
 	}
+
+	if cycle, ok := g.Cycle(); ok {
+		return &graph.CycleError{Path: cycle}
+	}
+
 	return e.run(ctx, spec, g)
 }
 

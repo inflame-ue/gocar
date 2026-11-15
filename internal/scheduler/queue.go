@@ -1,6 +1,6 @@
 package scheduler
 
-// ReadyQueue implements the [[heap.Interface]].
+// ReadyQueue implements the [heap.Interface].
 // Each item in the ReadyQueue is assigned a priority level.
 type ReadyQueue struct {
 	level map[string]int
