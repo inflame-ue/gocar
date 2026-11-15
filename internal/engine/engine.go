@@ -45,7 +45,7 @@ func NewEngine(dir string, runner Executor, cache Cache) *Engine {
 }
 
 func (e *Engine) jobs() int {
-	if e.Jobs < 0 {
+	if e.Jobs <= 0 {
 		return runtime.NumCPU()
 	}
 	return e.Jobs
@@ -58,28 +58,7 @@ func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
 	if err != nil {
 		return err
 	}
-
-	order, err := g.Kahn()
-	if err != nil {
-		return err
-	}
-
-	fp := fingerprint.NewFingerprinter(e.Dir)
-	keys := make(map[string]string)
-
-	for _, name := range order {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		key, err := e.runOne(ctx, name, spec[name], keys, fp)
-		if err != nil {
-			return err
-		}
-		keys[name] = key
-	}
-
-	return nil
+	return e.run(ctx, spec, g)
 }
 
 // runOne processes a single task. It returns the task's key
