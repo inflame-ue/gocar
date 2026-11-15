@@ -19,11 +19,19 @@ type Cache interface {
 	Put(key string, outputs []string, dir string) error
 }
 
+type Rebuilder int
+
+const (
+	RebuilderHash Rebuilder = iota
+	RebuilderMTime
+)
+
 type Engine struct {
-	Dir    string
-	Runner Executor
-	Cache  Cache
-	Jobs   int
+	Dir       string
+	Runner    Executor
+	Cache     Cache
+	Jobs      int
+	Rebuilder Rebuilder
 }
 
 // NewEngine returns a new [Engine] that builds the given spec in dir.
