@@ -38,6 +38,10 @@ func run() error {
 	var noCache bool
 	flag.BoolVar(&noCache, "no-cache", false, "No cache flag, every build will be cold.")
 
+	var jobs int
+	flag.IntVar(&jobs, "jobs", 0, "Maximum number of tasks to run in parallel (0 = number of CPUs).")
+	flag.IntVar(&jobs, "j", 0, "Maximum number of tasks to run in parallel (0 = number of CPUs).")
+
 	flagDir := flag.String("dir", "", "The project root, location where task config lives.")
 	flag.Parse()
 
@@ -66,6 +70,7 @@ func run() error {
 
 	ex := runner.NewRunner(os.Stdout, os.Stderr, dir)
 	engine := engine.NewEngine(dir, ex, ca)
+	engine.Jobs = jobs
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"runtime"
 
 	"github.com/inflame-ue/gocar/internal/fingerprint"
 	"github.com/inflame-ue/gocar/internal/graph"
@@ -22,6 +23,7 @@ type Engine struct {
 	Dir    string
 	Runner Executor
 	Cache  Cache
+	Jobs   int
 }
 
 // NewEngine returns a new [Engine] that builds the given spec in dir.
@@ -42,6 +44,13 @@ func NewEngine(dir string, runner Executor, cache Cache) *Engine {
 	}
 }
 
+func (e *Engine) jobs() int {
+	if e.Jobs <= 0 {
+		return runtime.NumCPU()
+	}
+	return e.Jobs
+}
+
 // Build is the orchestration method that builds the DAG, computes
 // the topological order, and handles the execution loop for each task.
 func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
@@ -50,70 +59,59 @@ func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
 		return err
 	}
 
-	order, err := g.Kahn()
-	if err != nil {
-		return err
+	if cycle, ok := g.Cycle(); ok {
+		return &graph.CycleError{Path: cycle}
 	}
 
-	// if no cache is specified for the build system,
-	// just execute the tasks in the topological order.
+	return e.run(ctx, spec, g)
+}
+
+// runOne processes a single task. It returns the task's key
+// so that dependents can compute their own keys.
+func (e *Engine) runOne(ctx context.Context, name string, t task.Task,
+	depKeys map[string]string, fp *fingerprint.Fingerprinter) (string, error) {
+
+	// with no cache there is nothing to fingerprint or restore,
+	// so just execute the task.
 	if e.Cache == nil {
-		for _, name := range order {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			if err := e.Runner.RunTask(ctx, name, spec[name]); err != nil {
-				return err
-			}
-		}
-		return nil
+		return "", e.Runner.RunTask(ctx, name, t)
 	}
 
-	fp := fingerprint.NewFingerprinter(e.Dir)
-	keys := make(map[string]string)
-	for _, name := range order {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
+	key, err := fp.Key(name, t, depKeys)
+	if err != nil {
+		return "", err
+	}
 
-		t := spec[name]
-		key, err := fp.Key(name, t, keys)
-		if err != nil {
-			return err
-		}
-		keys[name] = key
-
-		// always run the task, if it does not have outputs
-		// rationale: the task with no outputs has side-effects
-		if len(t.Outputs) == 0 {
-			if err := e.Runner.RunTask(ctx, name, t); err != nil {
-				return err
-			}
-			fp.Clear()
-			continue
-		}
-
-		hit, err := e.Cache.Get(key, e.Dir)
-		if err != nil {
-			return fmt.Errorf("task %q, cache get: %w", name, err)
-		}
-
-		// we hit the cache, there is no reason to execute the task
-		if hit {
-			fp.Forget(t.Outputs...)
-			continue
-		}
-
-		// otherwise run the task and put the key --> outputs to e.Cache
+	// always run the task, if it does not have outputs
+	// rationale: the task with no outputs has side-effects
+	if len(t.Outputs) == 0 {
 		if err := e.Runner.RunTask(ctx, name, t); err != nil {
-			return err
+			return "", err
 		}
-
-		fp.Forget(t.Outputs...)
-		if err := e.Cache.Put(key, t.Outputs, e.Dir); err != nil {
-			return fmt.Errorf("task %q, cache put: %w", name, err)
-		}
+		fp.Clear()
+		return key, nil
 	}
 
-	return nil
+	hit, err := e.Cache.Get(key, e.Dir)
+	if err != nil {
+		return "", fmt.Errorf("task %q, cache get: %w", name, err)
+	}
+
+	// we hit the cache, there is no reason to execute the task
+	if hit {
+		fp.Forget(t.Outputs...)
+		return key, nil
+	}
+
+	// otherwise run the task and put the key --> outputs to e.Cache
+	if err := e.Runner.RunTask(ctx, name, t); err != nil {
+		return "", err
+	}
+
+	fp.Forget(t.Outputs...)
+	if err := e.Cache.Put(key, t.Outputs, e.Dir); err != nil {
+		return "", fmt.Errorf("task %q, cache put: %w", name, err)
+	}
+
+	return key, nil
 }
