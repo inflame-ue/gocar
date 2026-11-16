@@ -104,7 +104,7 @@ func (e *Engine) worker(ctx context.Context, spec task.Tasks, fp *fingerprint.Fi
 		p.running++
 		p.mu.Unlock()
 
-		key, err := e.runOne(ctx, name, t, depKeys, fp)
+		key, err := e.runOne(ctx, name, t, depKeys, spec, fp)
 
 		p.mu.Lock()
 		p.running--

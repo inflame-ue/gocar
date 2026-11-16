@@ -77,7 +77,11 @@ func (e *Engine) Build(ctx context.Context, spec task.Tasks) error {
 // runOne processes a single task. It returns the task's key
 // so that dependents can compute their own keys.
 func (e *Engine) runOne(ctx context.Context, name string, t task.Task,
-	depKeys map[string]string, fp *fingerprint.Fingerprinter) (string, error) {
+	depKeys map[string]string, spec task.Tasks, fp *fingerprint.Fingerprinter) (string, error) {
+
+	if e.Rebuilder == RebuilderMTime {
+		return "", e.runTimestamp(ctx, name, t, spec)
+	}
 
 	// with no cache there is nothing to fingerprint or restore,
 	// so just execute the task.
