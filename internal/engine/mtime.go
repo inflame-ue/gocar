@@ -26,6 +26,44 @@ func (e *Engine) runTimestamp(ctx context.Context, name string, t task.Task, spe
 }
 
 func (e *Engine) stale(name string, t task.Task, spec task.Tasks) (bool, error) {
+	if len(t.Outputs) == 0 {
+		return true, nil
+	}
+
+	newest, err := e.newestInput(name, t)
+	if err != nil {
+		return false, err
+	}
+
+	depNewest, missing, err := e.newestDepOutput(name, t, spec)
+	if err != nil {
+		return false, err
+	}
+	if missing {
+		return true, nil
+	}
+	if depNewest.After(newest) {
+		newest = depNewest
+	}
+
+	for _, output := range t.Outputs {
+		path := filepath.Join(e.Dir, filepath.FromSlash(output))
+
+		info, err := os.Stat(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			return true, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("task %q, output %q: %w", name, output, err)
+		}
+		if !info.Mode().IsRegular() {
+			return true, nil
+		}
+		if info.ModTime().Before(newest) {
+			return true, nil
+		}
+	}
+
 	return false, nil
 }
 
