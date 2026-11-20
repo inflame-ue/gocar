@@ -77,7 +77,7 @@ func run() error {
 	}
 
 	var ca engine.Cache
-	if !noCache {
+	if !noCache && mode == engine.RebuilderHash {
 		ca = cache.NewL1(cacheRoot)
 	}
 
