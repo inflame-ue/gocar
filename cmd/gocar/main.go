@@ -89,7 +89,9 @@ func run() error {
 	engine := engine.NewEngine(dir, ex, ca)
 	engine.Jobs = jobs
 	engine.Rebuilder = mode
-	
+	engine.Log = os.Stderr
+	engine.Verbose = verbose
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return engine.Build(ctx, spec)
