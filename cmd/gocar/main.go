@@ -45,6 +45,10 @@ func run() error {
 	var rebuilder string
 	flag.StringVar(&rebuilder, "rebuilder", "hash", "Rebuild strategy: hash or mtime.")
 
+	var verbose bool
+	flag.BoolVar(&verbose, "v", false, "Print per-task progress to stderr.")
+	flag.BoolVar(&verbose, "verbose", false, "Print per-task progress to stderr.")
+
 	flagDir := flag.String("dir", "", "The project root, location where task config lives.")
 	flag.Parse()
 
@@ -85,7 +89,7 @@ func run() error {
 	engine := engine.NewEngine(dir, ex, ca)
 	engine.Jobs = jobs
 	engine.Rebuilder = mode
-
+	
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return engine.Build(ctx, spec)
