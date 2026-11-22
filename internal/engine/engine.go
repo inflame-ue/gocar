@@ -28,19 +28,19 @@ const (
 )
 
 type Engine struct {
-	Dir       string
-	Runner    Executor
-	
+	Dir    string
+	Runner Executor
+
 	// Set Cache to nil to force cold builds every time.
-	Cache     Cache
-	
+	Cache Cache
+
 	Jobs      int
 	Rebuilder Rebuilder
 
 	// Set Log to nil to supress reporting.
 	Log     io.Writer
 	Verbose bool
-	report reportState
+	report  reportState
 }
 
 // NewEngine returns a new [Engine] that builds the given spec in dir.

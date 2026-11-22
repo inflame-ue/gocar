@@ -13,16 +13,16 @@ import (
 	"github.com/inflame-ue/gocar/internal/task"
 )
 
-func (e *Engine) runTimestamp(ctx context.Context, name string, t task.Task, spec task.Tasks) error {
+func (e *Engine) runTimestamp(ctx context.Context, name string, t task.Task, spec task.Tasks) (bool, error) {
 	stale, err := e.stale(name, t, spec)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if !stale {
-		return nil
+		return false, nil
 	}
 
-	return e.Runner.RunTask(ctx, name, t)
+	return true, e.Runner.RunTask(ctx, name, t)
 }
 
 func (e *Engine) stale(name string, t task.Task, spec task.Tasks) (bool, error) {
