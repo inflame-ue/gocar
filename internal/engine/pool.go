@@ -104,7 +104,9 @@ func (e *Engine) worker(ctx context.Context, spec task.Tasks, fp *fingerprint.Fi
 		p.running++
 		p.mu.Unlock()
 
-		key, err := e.runOne(ctx, name, t, depKeys, spec, fp)
+		start := time.Now()
+		key, out, err := e.runOne(ctx, name, t, depKeys, spec, fp)
+		e.report.record(ctx, e.Log, e.Verbose, name, out, time.Since(start), err)
 
 		p.mu.Lock()
 		p.running--
