@@ -6,6 +6,7 @@ import (
 	"slices"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/inflame-ue/gocar/internal/task"
 	"github.com/inflame-ue/gocar/internal/testutil"
@@ -149,6 +150,49 @@ func TestBuild_NilCacheRunsEverything(t *testing.T) {
 
 	assertRanExactly(t, ex.ranNames(), spec.Names())
 	assertRunsBeforeDeps(t, ex.ranNames(), spec)
+}
+
+func TestBuild_FailureCancelsInFlight(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	spec := task.Tasks{
+		"A": {Cmd: "a"},
+		"B": {Cmd: "b"},
+	}
+	errBoom := errors.New("boom")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var started sync.WaitGroup
+	started.Add(2)
+
+	ex := &fakeExecutor{onRun: func(ctx context.Context, name string, t task.Task) error {
+		started.Done()
+		started.Wait()
+
+		if name == "A" {
+			return errBoom
+		}
+
+		<-ctx.Done()
+		return ctx.Err()
+	}}
+
+	engine := NewEngine(dir, ex, nil)
+	engine.Jobs = 2
+
+	begin := time.Now()
+	err := engine.Build(ctx, spec)
+	elapsed := time.Since(begin)
+
+	if !errors.Is(err, errBoom) {
+		t.Fatalf("expected the first task error, got %v", err)
+	}
+	if elapsed > 2*time.Second {
+		t.Errorf("expected the in-flight task to be cancelled, build took %s", elapsed)
+	}
 }
 
 func TestBuild_CacheHitSkipExecution(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"context"
 	"sync"
+	"time"
 
 	"github.com/inflame-ue/gocar/internal/fingerprint"
 	"github.com/inflame-ue/gocar/internal/graph"
@@ -18,6 +19,7 @@ type pool struct {
 	keys    map[string]string
 	running int
 	err     error
+	cancel  context.CancelFunc
 
 	mu   sync.Mutex
 	cond *sync.Cond
@@ -43,6 +45,7 @@ func (e *Engine) run(ctx context.Context, spec task.Tasks, g *graph.Graph) error
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	p.cancel = cancel
 
 	// signal context cancellation to all workers
 	go func() {
@@ -113,6 +116,9 @@ func (e *Engine) worker(ctx context.Context, spec task.Tasks, fp *fingerprint.Fi
 		if err != nil {
 			if p.err == nil {
 				p.err = err
+				// stop the tasks that are already in flight
+				// do not wait for them to finish on their own.
+				p.cancel()
 			}
 			p.cond.Broadcast()
 			p.mu.Unlock()
