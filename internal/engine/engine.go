@@ -42,7 +42,7 @@ type Engine struct {
 // runner executes each task's command. If runner is nil, [Engine.Build]
 // panics as soon as a task needs to run (cache-only paths do not).
 //
-// cache stores and retrieves task outputs, local (L1) or remote (L2).
+// cache stores and retrieves task outputs in the local cache.
 // If cache is nil, every build is treated as a cold one.
 func NewEngine(dir string, runner Executor, cache Cache) *Engine {
 	return &Engine{
